@@ -1,2 +1,2 @@
 # Early-Modern-Sermons
-Tracing Biblical citations in early modern sermons 
+Tracing Biblical citations in early modern sermons  
