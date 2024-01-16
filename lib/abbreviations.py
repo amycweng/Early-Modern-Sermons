@@ -166,6 +166,8 @@ for book, abbrev_list in abbrev.items():
     for a in abbrev_list: 
         abbrev_to_book[a] = book
 
+
+
 # Turn the numbered books into one word for convenience in later regex tasks 
 numBook = {
     '1 samuel':'onesamuel',
@@ -186,3 +188,4 @@ numBook = {
     '2 john':'twojohn',
     '3 john':'threejohn'
 }
+
