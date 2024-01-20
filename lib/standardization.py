@@ -4,6 +4,23 @@ import sys
 sys.path.append('../')
 from lib.abbreviations import * 
 from lib.decomposition import * 
+from collections import defaultdict
+def clean_text(n): 
+    # remove foreign language indicators 
+    n = re.sub(rf"〈 in non-Latin alphabet 〉", "",n)
+    # replace all periods with spaces and convert to lower case 
+    n = re.sub(r'([\.:])',r' ',n).lower()
+    # replace all special characters with asterisks 
+    n = re.sub('〈◊〉|•|▪','*',n)
+    # remove everything that is not an alphabetical character, integer, comma, ampersand, hyphen, illegible char, or a single space
+    n = re.sub(r'[^a-z0-9\,\&\-\—\* ]','',n)
+    # strip away letters indicating verse or chapter 
+    n = re.sub(r"\bc\b|[^a-z*]l\b|[^a-z* ]v\b|\bverse\b|\bver\b|\bcap\b|\bchap\b|\bchapter\b","",n)
+    # normalize ampersands and conjunctions 
+    n = re.sub(r"\band\b|\&ampc\b|\&amp\b|\bet\b",'&', n)
+    # replace all instances of multiple white spaces with a single space. 
+    n = re.sub(r'\s+',' ',n)
+    return n 
 
 def clean_word(word): 
     word = word.lower().strip(".")
@@ -18,6 +35,8 @@ def clean_word(word):
 # and the longest chapter (Psalms 119) has 176 verses
 roman_to_int = {"i": 1, "v": 5, "x": 10, "l": 50, "c": 100, "d": 500, "m": 1000}
 def convert_numeral(word):
+    if word == "civ": 
+        return word 
     if not re.search(r'^(c{0,3})(xc|xl|l?x{0,3})(ix|iv|v?i{0,3})$', word): 
         return word 
     num = 0
@@ -33,19 +52,41 @@ def convert_numeral(word):
         return word 
 
 '''Standardize abbreviations'''
-num_to_text = {1:'one',2:'two',3:'three'}
+num_to_text = {'1':'one','2':'two','3':'three'}
 def replaceBook(note): 
     note = note.split(" ")
     for idx, word in enumerate(note): 
+        if (word == "the" or word == "ch") and idx > 0:
+            # must disambiguate whether the abbreviation refers to a book or is just the general term 
+            # skip if word is not preceded by an illegible character or digit 
+            if idx > 0: 
+                if not re.match(r'[\d+*]', note[idx]): 
+                    continue 
+            else: 
+                continue
+        if word == "de": 
+            if idx+1 in range(len(note)): 
+                # 'de' must be followed by at least one number to be considered an abbreviation  
+                if not re.match(r'\b[0-9*]+\b',note[idx+1]): 
+                    continue 
         note[idx] = convert_numeral(word)
         word = clean_word(word)
+        # identififed a valid abbreviation         
         if word in abbrev_to_book:
-            note[idx] = abbrev_to_book[word]
-    note = " ".join(note) 
-    numBooks = re.findall("(1|2|3) (samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john)",note)
+            # update term to the normalized version 
+            word = abbrev_to_book[word]
+            # non-scriptural references to an epistle
+            if word == 'epistle' and idx > 0:
+                continue
+            note[idx] = word  
+    note = " ".join(note)
+    numBooks = re.findall(r"([1-3\*{1}]) (samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john)",note)
     # convert all numbered books into a single token ("1 corinthians" --> "onecorinthians")
     for num, book in numBooks: 
-        note = re.sub(f"{num} {book}",f"{num_to_text[int(num)]}{book}",note)
+        if num == "*": 
+            note = re.sub(f"\* {book}",f"unknown{book}",note)
+        elif f"{num} {book}" in numBook: 
+            note = re.sub(f"{num} {book}",f"{num_to_text[num]}{book}",note)
     return note
 
 '''Main function to actually extract all of the Biblical citations'''
@@ -53,13 +94,10 @@ def findCitations(phrase):
     # initialize lists to keep track of the properly formatted citations and possible formats that this code cannot currently account for 
     citations, outliers = [], []
 
-    # if there is no instance of the book followed by at least one number  
-    if not re.search(r'[a-z]+ [0-9*]+',phrase):
-        return None 
     # only a chapter-level citation
-    if re.search(r'^[a-z]+ [0-9*]+$',phrase):
-        citations.append(phrase)
-        citations, outliers = proper_title(citations, outliers)
+    if re.search(r'^[a-z]+ [0-9*,]+$',phrase):
+        citations.append(phrase.strip())
+        citations = proper_title(citations)
         return citations, outliers 
      
     book = phrase.split(' ')[0]
@@ -69,7 +107,6 @@ def findCitations(phrase):
         phrase = re.sub('\,-','-',phrase)
         phrase = re.sub('\,$| \,$','',phrase)
     
-    orig_phrase = phrase
     # if the note is simply a single citation, call simple() to append the citation to the list of citations 
     if re.search(r'^[0-9\*]+ [0-9\*]+$',phrase):  
         citations.append(simple(book, phrase))
@@ -92,11 +129,11 @@ def findCitations(phrase):
             elif re.search(r'^[0-9*]+ [0-9*]+$',passage): 
                 citations.append(simple(book, passage))
     
-    # if there are ampersands but there are hyphens
+    # if there are no ampersands but there are hyphens
     elif re.search('-', phrase):
         c, o = hyphen(book,phrase)
         citations.extend(c)
-        outliers.extend([f'{book} {item}' for item in o])
+        outliers.extend([f'{item}' for item in o])
         # if len(o): print(orig_phrase)
     # if there are no ampersands & hyphens but there are commas  
     elif re.search(',',phrase): 
@@ -106,25 +143,24 @@ def findCitations(phrase):
         # special cases; see the othersimple function description for examples
         if re.search(r'[0-9*]+ [0-9*]+ [0-9*]+$',phrase):  
             citations.extend(othersimple(book, phrase))
-        # hard coding some special cases for the charity sermons dataset
-        elif '119 5 10 32 57 93 106 173 40' == phrase and book == 'psalms': 
-            # original is Psal 119.5 10.32.57.93.106 173.40.
-            citations.extend(['psalms 119:5', 'psalms 10:32', 'psalms 10:57','psalms 10:93','psalms 10:106', 'psalms 173:40'])
-        elif '8 1 3 5 8 9' in phrase and 'romans' in book: 
-            # original is Rm. 8.1.3 5.8.9
-            citations.extend(['romans 8:1','romans 8:2', 'romans 8:3', 'romans 5:8', 'romans 5:9'])
+        # # hard coding some special cases for the charity sermons dataset
+        # elif '119 5 10 32 57 93 106 173 40' == phrase and book == 'psalms': 
+        #     # original is Psal 119.5 10.32.57.93.106 173.40.
+        #     citations.extend(['psalms 119:5', 'psalms 10:32', 'psalms 10:57','psalms 10:93','psalms 10:106', 'psalms 173:40'])
+        # elif '8 1 3 5 8 9' in phrase and 'romans' in book: 
+        #     # original is Rm. 8.1.3 5.8.9
+        #     citations.extend(['romans 8:1','romans 8:2', 'romans 8:3', 'romans 5:8', 'romans 5:9'])
         else: 
             outliers.append(f'{book} {phrase}')
             # print(orig_phrase)
     # pretty formatting 
-    citations, outliers = proper_title(citations, outliers)
+    citations = proper_title(citations)
     # return both citations and outliers  
     return citations, outliers
 
 '''Convert the numbered books back into their original formats, i.e., "Onecorinthians" to "1 Corinthians"'''
-def proper_title(citations_list, pesky_list): 
+def proper_title(citations_list): 
     final_citations = []
-    final_pesky = []
     for citation in citations_list:
         citation = re.sub(f'\,','',citation)
         citation = citation.split(' ') 
@@ -139,84 +175,54 @@ def proper_title(citations_list, pesky_list):
         elif re.search('three',book):
             book = re.sub('three','',book)
             final_citations.append(f'3 {book.capitalize()} {citation[1]}')
+        elif re.search('unknown',book):
+            book = re.sub('unknown','',book)
+            final_citations.append(f'* {book.capitalize()} {citation[1]}')
         else: 
             final_citations.append(f'{book.capitalize()} {citation[1]}')
-
-    for citation in pesky_list: 
-        citation = re.sub(f'\,','',citation)
-        book = citation.split(' ')[0] 
-        citation = re.sub(book,'',citation)
-        if re.search('one',book):
-            book = re.sub('one','',book)
-            final_pesky.append(f'1 {book.capitalize()} {citation}')
-        elif re.search('two',book):
-            book = re.sub('two','',book)
-            final_pesky.append(f'2 {book.capitalize()} {citation}')
-        elif re.search('three',book):
-            book = re.sub('three','',book)
-            final_pesky.append(f'3 {book.capitalize()} {citation}')
-        else: 
-            final_pesky.append(f'{book.capitalize()} {citation}')
-    return final_citations, final_pesky 
+    return final_citations 
 
 
-outputs = []
-with open('../assets/sermons_marginalia.csv', 'r') as file:          
-    notes = csv.reader(file, delimiter=',')
+def test(): 
+    outputs = []
+    with open('../assets/sermons_marginalia.csv', 'r') as file:          
+        notes = csv.reader(file, delimiter=',')
+        citations, outliers = [],[]
+        for idx, entry in enumerate(notes):
+            if idx > 141253: break
+            if idx < 141253: continue
+            # output dictionary 
+            info_dict = {'idx':idx, 'tcpID':entry[0],'citations':None, 'outliers':None,'original':entry[-1]}
+            # get note text 
+            n = entry[-1]
+            n = clean_text(n)
+            # find possible citations 
+            n = replaceBook(n)
+            print(n)
+            match = re.findall(r'([a-z*]+ [\d*\,\&\-\— ]+)', n)
+            print(match)
+            c,o = [],[]
+            if len(match) > 0: 
+                for item in match:
+                    item = item.strip(" ")
+                    item = item.split(" ")
+                    book = item[0]
+                    if len(item) == 2 and item[1] == "&":
+                        continue # trivial case of "<word> &"
+                    item = " ".join(item)
+                    if book not in abbrev and book not in numBook.values():
+                        o.append(item) 
+                    else: 
+                        decomposed = findCitations(item)
+                        print(idx, decomposed)
+                        c.extend(decomposed[0])
+                        o.extend(decomposed[1])
+                info_dict['citations'] = "; ".join(c) 
+                info_dict['outliers'] = "; ".join(o)
+                outputs.append(info_dict)
+                citations.extend(c)
+                outliers.extend(o)
+            if (idx+1) % 100000 == 0: 
+                print(f"Processed {idx+1} entries")
 
-    expected_outliers = []
-    citations, outliers = [],[]
-    for idx, entry in enumerate(notes):
-        if idx < 169287: continue
-        if idx > 169287: break
-        # output dictionary 
-        info_dict = {'idx':idx, 'tcpID':entry[0],'citations':None, 'outliers':None,'original':entry[-1]}
-        # get note text 
-        n = entry[-1]
-        
-        # replace all periods with spaces and convert to lower case 
-        # Some citations are originally inconsistently formatted as "<book> <chapter>.<verse>" at times 
-        # and "<book> <chapter>. <verse>." at other times, so replacing periods with spaces is a must 
-        n = re.sub(r'(\.)',r' ',n).lower()
-        # normalize ampersands and conjunctions 
-        n = re.sub(r"\band\b|\b&ampc\b|\b&amp\b|\bet\b",'&', n)
-        # remove everything that is not an alphabetical character, integer, comma, ampersand, hyphen illegible char, or a single space
-        n = re.sub(r'[^a-z0-9\,\&\-\—\*\•\▪ ]','',n)
-        # replace 
-        n = re.sub(r'[\•\▪]','*',n)
-        # replace all instances of multiple white spaces with a single space. 
-        n = re.sub(r'\s+',' ',n)
-        
-        # dealing with c., v., ver., chap., cap.  
-        # A02456,sermon,70,168,Deut. 12. 5.6. &amp; 7. v 16. c. 14 v. 23. c. 16. v. 2.11. c. 31. v. 11.
-        # first store elsewhere and deal with it later 
-        if re.search(r'\bc\b|\bv\b|\bver\b|\bchap\b|\bcap\b',n) and re.search(r'[^a-z\&\,]+',n): 
-            expected_outliers.append((idx,n))
-            outputs.append(info_dict)
-            continue 
-
-        # find possible citations 
-        n = replaceBook(n)
-        match = re.findall(rf'([a-z*]+ [^a-z\&]+)', n)
-        c,o = [],[]
-        print(n)
-        if len(match) > 0: 
-            for item in match:
-                item = item.strip(" ")
-                book = item.split(" ")[0]
-                if book not in abbrev and book not in numBook.values():
-                    o.append(item) 
-                else: 
-                    decomposed = findCitations(item)
-                    if not decomposed: continue
-                    c.extend(decomposed[0])
-                    o.extend(decomposed[1])
-            info_dict['citations'] = "; ".join(c) 
-            info_dict['outliers'] = "; ".join(o)
-            outputs.append(info_dict)
-            # citations.extend(c)
-            # outliers.extend(o)
-        print(idx)
-        # if idx % 100000 == 0 and idx > 0: 
-        #     print(f"Processed {idx+1}")
-    # print(citations, outliers)
+test()

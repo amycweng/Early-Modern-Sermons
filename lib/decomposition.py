@@ -12,9 +12,9 @@ def comma(book, passage):
     passage = re.sub('  ',' ',passage)  
     passage = re.sub(rf'{book}| ,','',passage).strip()
     nums = passage.split(' ')
-    chapter,verse = nums[0],0
+    chapter = nums[0]
     for num in nums[1:]: 
-        if ',' in num or num == nums[-1]: 
+        if ',' in num or num == nums[-1] or num == "*": 
             verse = num.strip('\,') 
             phrases.append(f'{book} {chapter}.{verse}')
         else: 
@@ -72,10 +72,15 @@ e.g., "Acts 5 12, 14 -8 6 -9 35, 42" --> "Acts 5.12", "Acts 5.14", "Acts 8.6", "
 '''
 def hyphen(book,passage): 
     citations, outliers = [], []
-    passage = re.sub(' -|- | - ','-',passage)
+    passage = re.sub(r'\s{0,}-\s{0,}','-',passage)
     passage = passage.strip().strip('-')
-    if re.search('[0-9\*]+-[0-9\*]+-[0-9\*]+',passage): 
+    if len(re.findall(r'[0-9\*]+',passage)) == 3:
+        # case of 'revelation 1, 13-16' or 'proverbs 8 18,-21' 
+        # strip the commas out 
+        passage = re.sub(",","",passage)
+    if re.search('[0-9\*]+-[0-9\*]+-[0-9\*]+',passage) or re.search('[0-9\*]+ [0-9\*]+ [0-9\*]+-[0-9\*]+',passage): 
         # cases like psalms 2 4-4 4-4 9-5 19-6 14-13 14-22-29 in A85487 
+        # and 'john 5 24 3-18'
         # which is just too difficult to interpret
         outliers.append(f'{book} {passage.strip()}')
         return citations, outliers 
@@ -86,7 +91,7 @@ def hyphen(book,passage):
         return citations, outliers
     if re.search('^[0-9\*]+-[0-9\*]+$',passage):
         if "*" in passage: 
-            outliers.append(passage)
+            outliers.append(f'{book} {passage.strip()}')
         else: 
             nums = re.findall('[0-9]+',passage)
             for num in range(int(nums[0]),int(nums[1])+1): 

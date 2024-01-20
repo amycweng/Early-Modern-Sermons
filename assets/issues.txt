@@ -1,0 +1,24 @@
+19886,A13733,Epistle 2.7,,Ioh. Ep 2. verse 7.
+
+Does the comma mean disjoint or continuous? 
+662491,A95612,Leviticus 6.2; Leviticus 6.5,,"Lev. 6.2, 5."
+
+Is Jer. Jeremiah or Jerome? 
+
+662450,A95612,,k 21 9 10,1 K 21.9.10
+
+
+662346,A95612,Malachi 15,,m. 15.
+
+# must be 1/2/3 Ch. 
+662345,A95612,Chronicles 25.7,,Ch. 25. 7.
+
+662308,A95612,Samuel 17.28,,"• Sam. 17.28. Traducere, quasi transducere."
+
+
+# references by other people 
+662222,A47601,Philippians 3,,Zanchy on Phil. 3.
+
+# converting l to 50 
+30,A14670,,herod 50 2,Herod. l. 2.
+
