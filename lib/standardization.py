@@ -4,7 +4,7 @@ import sys
 sys.path.append('../')
 from lib.abbreviations import * 
 from lib.decomposition import * 
-from collections import defaultdict
+
 def clean_text(n): 
     # remove foreign language indicators 
     n = re.sub(rf"〈 in non-Latin alphabet 〉", "",n)
@@ -24,6 +24,9 @@ def clean_text(n):
 
 def clean_word(word): 
     word = word.lower().strip(".")
+    if not re.match(r'^[0-9]+$',word): 
+        # strip commas after non-numeric tokens 
+        word = word.strip(",")
     word = re.sub("v","u",word) # replace all v's with u's 
     word = re.sub(r"^i","j",word) # replace initial i's to j's 
     word = re.sub(r"(?<=\w)y(?=\w)","i",word) # replace y's that occur within words into i's
@@ -56,15 +59,7 @@ num_to_text = {'1':'one','2':'two','3':'three'}
 def replaceBook(note): 
     note = note.split(" ")
     for idx, word in enumerate(note): 
-        if (word == "the" or word == "ch") and idx > 0:
-            # must disambiguate whether the abbreviation refers to a book or is just the general term 
-            # skip if word is not preceded by an illegible character or digit 
-            if idx > 0: 
-                if not re.match(r'[\d+*]', note[idx]): 
-                    continue 
-            else: 
-                continue
-        if word == "de": 
+        if re.search(r"^de",word): 
             if idx+1 in range(len(note)): 
                 # 'de' must be followed by at least one number to be considered an abbreviation  
                 if not re.match(r'\b[0-9*]+\b',note[idx+1]): 
@@ -78,6 +73,15 @@ def replaceBook(note):
             # non-scriptural references to an epistle
             if word == 'epistle' and idx > 0:
                 continue
+            elif re.search('samuel|kings|chronicles|corinthians|thessalonians|timothy|peter',word): 
+                # do not convert 'ch' or 'the' if it is not preceded by a number or an asterisk 
+                if idx > 0: 
+                    # the case of "1, Kings"
+                    note[idx-1] = note[idx-1].strip(",")
+                    if not re.search(r'^[1-3\*{1}]$',note[idx-1]):
+                        continue 
+                else: 
+                    continue
             note[idx] = word  
     note = " ".join(note)
     numBooks = re.findall(r"([1-3\*{1}]) (samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john)",note)
@@ -93,9 +97,8 @@ def replaceBook(note):
 def findCitations(phrase): 
     # initialize lists to keep track of the properly formatted citations and possible formats that this code cannot currently account for 
     citations, outliers = [], []
-
     # only a chapter-level citation
-    if re.search(r'^[a-z]+ [0-9*,]+$',phrase):
+    if re.search(r'^[a-z]+ [0-9*]+$',phrase):
         citations.append(phrase.strip())
         citations = proper_title(citations)
         return citations, outliers 
@@ -189,8 +192,8 @@ def test():
         notes = csv.reader(file, delimiter=',')
         citations, outliers = [],[]
         for idx, entry in enumerate(notes):
-            if idx > 141253: break
-            if idx < 141253: continue
+            if idx > 491139: break
+            if idx < 491139: continue
             # output dictionary 
             info_dict = {'idx':idx, 'tcpID':entry[0],'citations':None, 'outliers':None,'original':entry[-1]}
             # get note text 
@@ -200,11 +203,12 @@ def test():
             n = replaceBook(n)
             print(n)
             match = re.findall(r'([a-z*]+ [\d*\,\&\-\— ]+)', n)
-            print(match)
+            # print(match)
             c,o = [],[]
             if len(match) > 0: 
                 for item in match:
                     item = item.strip(" ")
+                    item = re.sub(r"([^0-9a-z*])$","",item)
                     item = item.split(" ")
                     book = item[0]
                     if len(item) == 2 and item[1] == "&":
@@ -213,6 +217,7 @@ def test():
                     if book not in abbrev and book not in numBook.values():
                         o.append(item) 
                     else: 
+                        print(item)
                         decomposed = findCitations(item)
                         print(idx, decomposed)
                         c.extend(decomposed[0])
@@ -225,4 +230,4 @@ def test():
             if (idx+1) % 100000 == 0: 
                 print(f"Processed {idx+1} entries")
 
-test()
+# test()

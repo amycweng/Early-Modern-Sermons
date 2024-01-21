@@ -124,7 +124,7 @@ def hyphen(book,passage):
             citations.append(simple(book, p))
             idx += 1 
         else: 
-            outliers.append(p)
+            outliers.append(f'{book} {passage.strip()}')
             idx += 1 
     return citations, outliers 
 
