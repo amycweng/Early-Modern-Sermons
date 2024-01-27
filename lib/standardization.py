@@ -4,15 +4,16 @@ import sys
 sys.path.append('../')
 from lib.abbreviations import * 
 from lib.decomposition import * 
+numBook_to_proper = {v:k for k,v in numBook.items()}
 
 def extract_citations(n):
-    citations, outliers = [], [] 
+    citations, outliers = {}, {}
     n = clean_text(n)
-    n = replaceBook(n)
+    n,replaced = replaceBook(n)
     match,text_str = find_matches(n)
     # print(match)
     if len(match) > 0: 
-        for item in match:
+        for ref, item in enumerate(match):
             item = re.sub(r"([^0-9a-z*])$","",item)
             item = item.split(" ")
             # accounting for case where the chapter number precedes the book's name 
@@ -28,11 +29,14 @@ def extract_citations(n):
                 chapter = item[3]
                 verse = item[1]
                 item[1],item[2],item[3] = chapter,verse,"" 
+            replaced[ref] = replaced[ref] + " " + " ".join(item[1:])
             item = " ".join(item)
             decomposed = decompose(item)
-            citations.extend(decomposed[0])
-            outliers.extend(decomposed[1])
-    return citations, outliers, text_str 
+            if len(decomposed[0]) > 0: 
+                citations[ref] = decomposed[0]
+            if len(decomposed[1]) > 0: 
+                outliers[ref] = decomposed[1]
+    return citations, outliers, text_str,replaced
 
 def clean_text(n): 
     # remove foreign language indicators 
@@ -84,16 +88,18 @@ def convert_numeral(word):
 num_to_text = {'1':'one','2':'two','3':'three'}
 def replaceBook(text): 
     text = text.split(" ")
+    replaced = []
     for idx, word in enumerate(text): 
         if idx+1 in range(len(text)): # must be followed by at least one number 
             if not re.match(r'^[0-9*\,\-\—\*\.\:]+$',text[idx+1]): 
                 continue 
         text[idx] = convert_numeral(word)
-        word = clean_word(word)
+        word = clean_word(text[idx])
         # identififed a valid abbreviation         
         if word in abbrev_to_book:
             # update term to the normalized version 
             word = abbrev_to_book[word]
+            orig = text[idx]
             # non-scriptural references to an epistle
             if word == 'epistle' and idx > 0:
                 continue
@@ -106,8 +112,10 @@ def replaceBook(text):
                         continue 
                     else: 
                         text[idx-1] = prev
+                        orig = prev + " " + orig
                 else: 
                     continue
+            replaced.append(orig)
             text[idx] = word  
     text = " ".join(text)
     numBooks = re.findall(r"([1-3\*{1}]) (samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john)",text)
@@ -117,9 +125,9 @@ def replaceBook(text):
             text = re.sub(r"\* {book}",f"unknown{book}",text)
         elif f"{num} {book}" in numBook: 
             text = re.sub(f"{num} {book}",f"{num_to_text[num]}{book}",text)
-    return text
+    return text, replaced
 
-def find_matches(text): 
+def find_matches(text):
     text = text.split(" ")
     for idx, t in enumerate(text): 
         if not re.search(r"[A-Za-z]", t): 
@@ -131,13 +139,12 @@ def find_matches(text):
     matches = []
     current = []
     for idx, t in enumerate(text): 
-        if t in abbrev or t in numBook.values():
+        if t in abbrev or t in numBook_to_proper:
             if len(current) > 1 and current[1] != "": 
                 matches.append(" ".join(current))
                 text_str = re.sub(re.escape(" ".join(current)), f"(REF{count})",text_str)
                 count += 1 
-                current = []
-            if idx > 0 and t not in numBook.values():
+            if idx > 0 and t not in numBook_to_proper and len(current) == 0:
                 if re.search(r"^[0-9*]+$", text[idx-1]): 
                     # check the next two numbers 
                     if (idx+1) < len(text) and (idx+2) < len(text):
@@ -163,7 +170,13 @@ def find_matches(text):
             text_str = re.sub(re.escape(" ".join(current)), f"(REF{count})",text_str)
             count += 1 
             current = []
-    return matches, text_str
+
+    if len(current) > 1 and current[1] != "":
+        # have reached the end of a relevant citation  
+        matches.append(" ".join(current))
+        text_str = re.sub(re.escape(" ".join(current)), f"(REF{count})",text_str)
+
+    return matches, text_str 
         
 
 '''Main function to actually extract all of the Biblical citations'''

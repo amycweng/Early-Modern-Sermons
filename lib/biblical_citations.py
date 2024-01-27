@@ -1,22 +1,53 @@
-from standardization import * 
+from lib.standardization import * 
 from bs4 import BeautifulSoup, SoupStrainer
 from nltk import sent_tokenize
-class Biblical_Citations(): 
+class Sermon(): 
     def __init__(self,filepath):
         self.paragraphs, self.notes = self.parse_TCP_xml(filepath)
+        print(f"Finished parsing")
         self.citations, self.outliers = {},{}
-        self.cleaned = {} # cleaned text 
+        self.cleaned_p = {} # cleaned paragraphs 
+        self.cleaned_n = {} # cleaned notes 
+        self.replaced = {} # replaced text 
+        self.note_covering_sentIdx = {} 
+        self.sentIdx = {}
         self.identify_citations(self.paragraphs, "P")
-        self.identify_citations(self.notes, "N")
-        
-        for text_id, text in self.cleaned.items(): 
-            self.cleaned[text_id] = sent_tokenize(text)
-        
-        print(self.citations, "\n\n", self.outliers)
+        self.identify_citations(self.notes, "N") 
+        print(f"Finished extracting all citations")
+        self.segment(self.cleaned_p, "P")
+        self.segment(self.cleaned_n, "N")
+        print(f"Finished segmenting sentences")
+        # self.contexts()
+        # print(self.citations, "\n\n", self.outliers)
         # for idx, c in self.citations.items(): 
         #     if "N" in idx: 
         #         print(c)
     
+    def segment(self,cleaned,type): 
+        for text_id, text in cleaned.items(): 
+            # segment into individual sentences 
+            sentences = sent_tokenize(text)
+            if type == "P":
+                # map each citation to the paragraph id and sentence index 
+                for idx, sent in enumerate(sentences):
+                    n_tags = re.findall(r"\(NOTE_(\d+:\d+_\d+)\)",sent)
+                    for n in n_tags: 
+                        self.note_covering_sentIdx[n] = idx
+                    r_tags = re.findall(r"REF(\d+)",sent)
+                    for r in r_tags: 
+                        if text_id not in self.sentIdx: 
+                            self.sentIdx[text_id] = {}
+                        self.sentIdx[text_id][r] = idx  
+                self.cleaned_p[text_id] = sentences 
+            elif type == "N": 
+                self.cleaned_n[text_id] = sentences
+                for idx, sent in enumerate(sentences):
+                    r_tags = re.findall(r"REF(\d+)",sent)
+                    for r in r_tags: 
+                        if text_id not in self.sentIdx: 
+                            self.sentIdx[text_id] = {}
+                        self.sentIdx[text_id][r] = idx
+
     def parse_TCP_xml(self, filepath):
         # read the input XML file 
         with open(filepath,'r') as file: 
@@ -36,9 +67,8 @@ class Biblical_Citations():
                 paragraphs[curr_page] = {}
                 p_idx = 0 
             elif t.name == "P": # paragraph 
+                # if curr_page != "53": continue
                 notes = t.find_all("NOTE")
-                # if curr_page != '49': continue
-                # print(t.text)
                 if notes: # there are marginal notes in this paragraph
                     notes_dict[f"{curr_page}:{p_idx}"] = {}
                     for idx, note in enumerate(notes): 
@@ -55,50 +85,144 @@ class Biblical_Citations():
     def identify_citations(self,text_dict,type):
         for loc, info in text_dict.items():
             for idx, text in info.items(): 
-                if type != "N": break
-                if f"{loc}_{type}_{idx}" != "84:0_N_2": continue
-                # print(sent_tokenize(text))
-                c, o, cleaned = extract_citations(text)
-                self.cleaned[f"{loc}_{type}"] = cleaned 
+                c, o, cleaned,replaced = extract_citations(text)
+                if type == "N": 
+                    self.cleaned_n[f"{loc}_{type}_{idx}"] = cleaned 
+                else: 
+                    self.cleaned_p[f"{loc}_{type}_{idx}"] = cleaned 
                 # print(c,o, text)
                 if len(c) > 0: 
                     self.citations[f"{loc}_{type}_{idx}"] = c 
+                    self.replaced[f"{loc}_{type}_{idx}"] = replaced
                 if len(o) > 0: 
                     self.outliers[f"{loc}_{type}_{idx}"] = o 
 
     def contexts(self):
-        note, cleaned,following,preceding = '','','',''
-        for loc_type_idx, c_list in self.citations.items(): 
+        self.info = {}
+        for loc_type_idx in self.citations: 
             loc, type, idx = loc_type_idx.split("_")
-            clean = self.cleaned[f"{loc}_P"]
+            # print("----\n",c_list,"\n",self.replaced[loc_type_idx])
+            preceding,succeeding = None, None
             if type == "N":
                 page, p_idx = loc.split(":")
-                p_idx = int(p_idx)
-                n_idx = int(idx)
-                note = self.notes[loc][n_idx]
-                paragraph = self.paragraphs[page][p_idx]
-                # for i, sent in enumerate(clean): 
-                #     if f"(NOTE_" in sent: 
-                #         cleaned = sent 
-                #         if (i+1) < len(clean):
-                #             following = clean[i+1]
-                #         if (i-1) >= 0: 
-                #             preceding = clean[i-1]
+                clean_note = self.cleaned_n[loc_type_idx]
+                sent_len = self.cleaned_p[f"{page}_P_{p_idx}"]
+                sentidx = self.note_covering_sentIdx[f"{loc}_{idx}"]
+                # print(f"NOTE_{loc}_{idx}", clean_note)
             else: 
-                for i, sent in enumerate(clean): 
-                    if f"(REF{idx})" in sent: 
-                        cleaned = sent
-                        if (i+1) < len(clean):
-                            following = clean[i+1]
-                        if (i-1) >= 0: 
-                            preceding = clean[i-1]
-            if type == "N": continue
-            
-            print("----\n",loc_type_idx, c_list,'\n',note)
-            print(preceding, '\n', cleaned, '\n', following)
+                sentidx = self.sentIdx[loc_type_idx][idx]
+                sent_len = self.cleaned_p[loc_type_idx]
+            if sentidx > 0: 
+                preceding = sentidx-1
+            if sentidx < (len(sent_len)-1):
+                succeeding = sentidx+1
+            self.info[loc_type_idx] = (sentidx, preceding, succeeding)
+            # print(info[loc_type_idx])
 
-if __name__ == "__main__":
-    filepath = '/Users/amycweng/Digital Humanities/sermonsTCP/A19277.P4.xml'
-    citations = Biblical_Citations(filepath)
-    citations.contexts()
-    # tcp_id = filepath.split("/")[-1].split(".")[0]
+def write_outputs(outpath,fields,outputs): 
+    if len(outputs) > 0: 
+        outfile = open(outpath,"w+")
+        writer = csv.DictWriter(outfile, fieldnames=fields)
+        writer.writeheader()
+        for dict in outputs: 
+            writer.writerow(dict)
+        outfile.close()
+
+
+SFIELDS = ["tcp_id", "id", "page","p_idx", "s_idx", "text"]
+    # PRIMARY KEY (tcpid, id)
+NFIELDS = ["tcp_id","n_id","id","n_idx","text"]
+    # PRIMARY KEY for notes (tcpid, n_id)
+    # FOREIGN KEY (tcpid, id) on sentences 
+CFIELDS = ["tcp_id", "c_id", "c_group","citation"]  # individual citations
+    # PRIMARY KEY (tcp_id, c_id)
+    # FOREIGN KEY (tcpid, c_group) on c_locations
+LFIELDS = ["tcp_id", "group", "id","type","n_id","original"]
+    # PRIMARY and FOREIGN KEY (tcp_id, c_group)
+    # FOREIGN KEY (tcp_id, id) on sentences 
+    # FOREIGN KEY (tcp_id, n_id) on notes 
+OFIELDS = ["tcp_id", "group","id","type","n_id","original"]
+
+def process(filename, tcpids):
+    sentences, notes, citations, c_locations, outliers = [],[],[],[],[]
+    for tcpID in tcpids: 
+        sent_dict = {}
+        note_dict = {}
+        filepath = f'/Users/amycweng/Digital Humanities/sermonsTCP/{tcpID}.P4.xml'
+        S = Sermon(filepath)
+        print(f"Finished processing {tcpID}")
+        id = 0 
+        for loc_type_idx,sents in S.cleaned_p.items(): 
+            loc, type, idx = loc_type_idx.split("_")
+            for i, sent in enumerate(sents): 
+                sentences.append({"tcp_id":tcpID, "id":id, "page":loc,"p_idx":idx, "s_idx":i, "text":sent})
+                sent_dict[(loc,idx,i)] = id  # (page num, paragraph index, sentence index)
+                id += 1 
+        
+        id = 0 
+        for loc_type_idx,sents in S.cleaned_n.items(): 
+            loc, type, idx = loc_type_idx.split("_")
+            page, p_idx = loc.split(":")
+            for i, sent in enumerate(sents): 
+                s_idx = S.note_covering_sentIdx[f"{loc}_{idx}"]
+                notes.append({"tcp_id":tcpID, "n_id": id, "id": sent_dict[(page,p_idx,s_idx)], "n_idx":i, "text":sent})
+                # n_id is index within document 
+                # n_idx is index within the sentences of the entire marginal note 
+                note_dict[(loc,idx,i)] = id  # (page#:p_idx, index within paragraph, n_idx)
+                id += 1 
+
+        id = 0 
+        c_id = 0
+        for loc_type_idx, c_dict in S.citations.items(): 
+            loc, type, idx = loc_type_idx.split("_")
+            for ref, c_list in c_dict.items():
+                n_id = None
+                if type == "N":
+                    page, p_idx = loc.split(":")
+                    s_idx = S.sentIdx[loc_type_idx][f"{ref}"]
+                    n_id = note_dict[(loc,idx,s_idx)]
+                else: 
+                    page, p_idx = loc, idx 
+                    s_idx = S.sentIdx[loc_type_idx][f"{ref}"]
+                covering_id = sent_dict[(page,p_idx,s_idx)]
+                c_locations.append({"tcp_id":tcpID, "group": id, "id":covering_id,"type":type,"n_id":n_id,"original":S.replaced[loc_type_idx][ref]})
+                # print(c_locations[-1])
+                for c in c_list:
+                    citations.append({"tcp_id":tcpID, "c_id": c_id, "c_group":id,"citation":c}) 
+                    # print(citations[-1])
+                    c_id += 1 
+                id += 1 
+        
+
+        id = 0 
+        for loc_type_idx, c_dict in S.outliers.items(): 
+            loc, type, idx = loc_type_idx.split("_")
+            for ref, c_list in c_dict.items():
+                n_id = None
+                if type == "N":
+                    page, p_idx = loc.split(":")
+                    s_idx = S.sentIdx[loc_type_idx][f"{ref}"]
+                    n_id = note_dict[(loc,idx,s_idx)]
+                else: 
+                    page, p_idx = loc, idx 
+                    s_idx = S.sentIdx[loc_type_idx][f"{ref}"]
+                covering_id = sent_dict[(page,p_idx,s_idx)]
+                outliers.append({"tcp_id":tcpID, "group": id, "id":covering_id,"type":type,"n_id":n_id,"original":S.outliers[loc_type_idx]})
+                id += 1 
+
+    out_body = f"../outputs/sentences_body/{filename}.csv"
+    out_margins = f"../outputs/sentences_margin/{filename}.csv"
+    write_outputs(out_body, SFIELDS,sentences)
+    write_outputs(out_margins, NFIELDS, notes)
+    out_citations = f"../outputs/citations/{filename}.csv"
+    out_clocations = f"../outputs/c_locations/{filename}.csv"
+    out_outliers = f"../outputs/outliers/{filename}.csv"
+    write_outputs(out_clocations, LFIELDS, c_locations)
+    write_outputs(out_citations, CFIELDS, citations)
+    write_outputs(out_outliers, OFIELDS, outliers)
+
+
+# groups = {"A1":["A19277"],"A4":["A40728"]}
+
+# for filename, tcpids in groups.items(): 
+#     process(filename, tcpids)
