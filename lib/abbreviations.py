@@ -65,7 +65,6 @@ abbrev = { # 1629 terms in total
         'canticles',
         'catic',
         'cnt',
-        'sol',
         'song',
         'songs',
     ],
@@ -1755,6 +1754,15 @@ abbrev = { # 1629 terms in total
         'tobit',
         'toby',
         'tobye'
+    ],
+    'wisdom':
+    [
+        'wisdom',
+        'wi*dom',
+        'wisd',
+        'wisdim', 
+        'wisdomn',
+        'wis*'
     ],
     'zechariah':
     [

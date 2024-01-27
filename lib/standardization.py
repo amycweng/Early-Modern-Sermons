@@ -5,28 +5,53 @@ sys.path.append('../')
 from lib.abbreviations import * 
 from lib.decomposition import * 
 
+def extract_citations(n):
+    citations, outliers = [], [] 
+    n = clean_text(n)
+    n = replaceBook(n)
+    match,text_str = find_matches(n)
+    # print(match)
+    if len(match) > 0: 
+        for item in match:
+            item = re.sub(r"([^0-9a-z*])$","",item)
+            item = item.split(" ")
+            # accounting for case where the chapter number precedes the book's name 
+            if re.search(r"\d+", item[0]):
+                chapter = item[0]
+                item[0] = item[1] # book 
+                item[1] = chapter 
+            # case of <book> ch <num> <num>  
+            if re.search(r'^ch$',item[1]):
+                item[1] = ""
+            elif len(item) > 2 and re.search(r'^ch$',item[2]):
+                # case of '1 K. 19. ch. 18.  
+                chapter = item[3]
+                verse = item[1]
+                item[1],item[2],item[3] = chapter,verse,"" 
+            item = " ".join(item)
+            decomposed = decompose(item)
+            citations.extend(decomposed[0])
+            outliers.extend(decomposed[1])
+    return citations, outliers, text_str 
+
 def clean_text(n): 
     # remove foreign language indicators 
     n = re.sub(rf"〈 in non-Latin alphabet 〉", "",n)
-    # replace all periods with spaces and convert to lower case 
-    n = re.sub(r'([\.:])',r' ',n).lower()
     # replace all special characters with asterisks 
     n = re.sub('〈◊〉|•|▪','*',n)
-    # remove everything that is not an alphabetical character, integer, comma, ampersand, hyphen, illegible char, or a single space
-    n = re.sub(r'[^a-z0-9\,\&\-\—\* ]','',n)
-    # strip away letters indicating verse or chapter 
-    n = re.sub(r"\bc\b|[^a-z*]l\b|[^a-z* ]v\b|\bverse\b|\bver\b|\bcap\b|\bchap\b|\bchapter\b","",n)
+    # remove everything that is not an alphabetical character, integer, comma, ampersand, hyphen, asterisk, period, apostrophe or a single space
+    n = re.sub(r'[^\w\d\,\&\-\—\*\(\)\.\'\"\:\_ ]','',n)
+    # strip away letters indicating verse or chapter, as well as the phrase 'of Sol' which follows 'Song' or 'Wisdom'
+    n = re.sub(r"\bc\b|\bl\b|\bv\b|\bverse\b|\bver\b|\bcap\b|\bchap\b|\bchapter\b|\bof Sol\b","",n)
     # normalize ampersands and conjunctions 
-    n = re.sub(r"\band\b|\&ampc\b|\&amp\b|\bet\b",'&', n)
+    n = re.sub(r"\band\b|\&ampc\b|\&amp\b|\bet\b|&",' & ', n)
     # replace all instances of multiple white spaces with a single space. 
     n = re.sub(r'\s+',' ',n)
     return n 
 
 def clean_word(word): 
     word = word.lower().strip(".")
-    if not re.match(r'^[0-9]+$',word): 
-        # strip commas after non-numeric tokens 
-        word = word.strip(",")
+    word = re.sub(r"([^\w\d\*])$","",word)
     word = re.sub("v","u",word) # replace all v's with u's 
     word = re.sub(r"^i","j",word) # replace initial i's to j's 
     word = re.sub(r"(?<=\w)y(?=\w)","i",word) # replace y's that occur within words into i's
@@ -40,9 +65,10 @@ roman_to_int = {"i": 1, "v": 5, "x": 10, "l": 50, "c": 100, "d": 500, "m": 1000}
 def convert_numeral(word):
     if word == "civ": 
         return word 
-    if not re.search(r'^(c{0,3})(xc|xl|l?x{0,3})(ix|iv|v?i{0,3})$', word): 
+    if not re.search(r'^(c{0,3})(xc|xl|l?x{0,3})(ix|iv|v?i{0,3})$', word.lower().strip(".")): 
         return word 
     num = 0
+    word = word.lower().strip(".") # strip period if Roman numeral 
     for idx, n in enumerate(word):
         if idx > 0 and roman_to_int[n] > roman_to_int[word[idx - 1]]:
             # case where we are one less than a multiple of ten or five (e.g., IX or IV)
@@ -56,15 +82,13 @@ def convert_numeral(word):
 
 '''Standardize abbreviations'''
 num_to_text = {'1':'one','2':'two','3':'three'}
-def replaceBook(note): 
-    note = note.split(" ")
-    for idx, word in enumerate(note): 
-        if re.search(r"^de",word): 
-            if idx+1 in range(len(note)): 
-                # 'de' must be followed by at least one number to be considered an abbreviation  
-                if not re.match(r'\b[0-9*]+\b',note[idx+1]): 
-                    continue 
-        note[idx] = convert_numeral(word)
+def replaceBook(text): 
+    text = text.split(" ")
+    for idx, word in enumerate(text): 
+        if idx+1 in range(len(text)): # must be followed by at least one number 
+            if not re.match(r'^[0-9*\,\-\—\*\.\:]+$',text[idx+1]): 
+                continue 
+        text[idx] = convert_numeral(word)
         word = clean_word(word)
         # identififed a valid abbreviation         
         if word in abbrev_to_book:
@@ -74,27 +98,76 @@ def replaceBook(note):
             if word == 'epistle' and idx > 0:
                 continue
             elif re.search('samuel|kings|chronicles|corinthians|thessalonians|timothy|peter',word): 
-                # do not convert 'ch' or 'the' if it is not preceded by a number or an asterisk 
+                # do not convert 'ch' or 'the' if it is not preceded and succeeded by a number or an asterisk 
                 if idx > 0: 
                     # the case of "1, Kings"
-                    note[idx-1] = note[idx-1].strip(",")
-                    if not re.search(r'^[1-3\*{1}]$',note[idx-1]):
+                    prev = re.sub(r"([^\w\d\*])$","",text[idx-1])
+                    if not re.search(r'^[1-3\*{1}]\.{0,}$',prev):
                         continue 
+                    else: 
+                        text[idx-1] = prev
                 else: 
                     continue
-            note[idx] = word  
-    note = " ".join(note)
-    numBooks = re.findall(r"([1-3\*{1}]) (samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john)",note)
+            text[idx] = word  
+    text = " ".join(text)
+    numBooks = re.findall(r"([1-3\*{1}]) (samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john)",text)
     # convert all numbered books into a single token ("1 corinthians" --> "onecorinthians")
     for num, book in numBooks: 
         if num == "*": 
-            note = re.sub(f"\* {book}",f"unknown{book}",note)
+            text = re.sub(r"\* {book}",f"unknown{book}",text)
         elif f"{num} {book}" in numBook: 
-            note = re.sub(f"{num} {book}",f"{num_to_text[num]}{book}",note)
-    return note
+            text = re.sub(f"{num} {book}",f"{num_to_text[num]}{book}",text)
+    return text
+
+def find_matches(text): 
+    text = text.split(" ")
+    for idx, t in enumerate(text): 
+        if not re.search(r"[A-Za-z]", t): 
+            text[idx] = re.sub(r"[\.\:]"," ",t)
+    text = re.sub(r"\s+"," "," ".join(text))
+    text_str = text
+    count = 0 
+    text = text.split(" ")
+    matches = []
+    current = []
+    for idx, t in enumerate(text): 
+        if t in abbrev or t in numBook.values():
+            if len(current) > 1 and current[1] != "": 
+                matches.append(" ".join(current))
+                text_str = re.sub(re.escape(" ".join(current)), f"(REF{count})",text_str)
+                count += 1 
+                current = []
+            if idx > 0 and t not in numBook.values():
+                if re.search(r"^[0-9*]+$", text[idx-1]): 
+                    # check the next two numbers 
+                    if (idx+1) < len(text) and (idx+2) < len(text):
+                        if re.search(r"^[0-9]+$", text[idx+1]) and re.search(r"^[0-9]+$", text[idx+2]): 
+                            current = [t]
+                        else: 
+                            current = [text[idx-1], t] 
+                    else: 
+                        current = [text[idx-1], t] 
+                else: 
+                    current = [t]
+            else: 
+                current = [t]
+        elif len(current) > 0 and re.search(r"[0-9*]+", t): 
+            if re.search(r"[A-Za-z]",t):
+                continue
+            current.append(t)
+        elif len(current)>0 and re.search(r'^ch$',t): 
+            current.append(t)
+        elif len(current) > 1 and current[1] != "":
+            # have reached the end of a relevant citation  
+            matches.append(" ".join(current))
+            text_str = re.sub(re.escape(" ".join(current)), f"(REF{count})",text_str)
+            count += 1 
+            current = []
+    return matches, text_str
+        
 
 '''Main function to actually extract all of the Biblical citations'''
-def findCitations(phrase): 
+def decompose(phrase): 
     # initialize lists to keep track of the properly formatted citations and possible formats that this code cannot currently account for 
     citations, outliers = [], []
     # only a chapter-level citation
@@ -102,18 +175,19 @@ def findCitations(phrase):
         citations.append(phrase.strip())
         citations = proper_title(citations)
         return citations, outliers 
-     
-    book = phrase.split(' ')[0]
-    phrase = re.sub(book,'',phrase).strip()
+
+    phrase = phrase.split(" ")
+    book = phrase[0]
+    phrase = " ".join(phrase[1:]).strip()
     if re.search('—|\,|\,$',phrase): 
         phrase = re.sub('—','-',phrase)
         phrase = re.sub('\,-','-',phrase)
         phrase = re.sub('\,$| \,$','',phrase)
     
-    # if the note is simply a single citation, call simple() to append the citation to the list of citations 
+    # if the text is simply a single citation, call simple() to append the citation to the list of citations 
     if re.search(r'^[0-9\*]+ [0-9\*]+$',phrase):  
         citations.append(simple(book, phrase))
-    # if there are ampersands in the note, split the note up by the ampersands 
+    # if there are ampersands in the text, split the text up by the ampersands 
     elif re.search('&',phrase): 
         passages = phrase.split('&')
         for passage in passages:
@@ -184,50 +258,3 @@ def proper_title(citations_list):
         else: 
             final_citations.append(f'{book.capitalize()} {citation[1]}')
     return final_citations 
-
-
-def test(): 
-    outputs = []
-    with open('../assets/sermons_marginalia.csv', 'r') as file:          
-        notes = csv.reader(file, delimiter=',')
-        citations, outliers = [],[]
-        for idx, entry in enumerate(notes):
-            if idx > 491139: break
-            if idx < 491139: continue
-            # output dictionary 
-            info_dict = {'idx':idx, 'tcpID':entry[0],'citations':None, 'outliers':None,'original':entry[-1]}
-            # get note text 
-            n = entry[-1]
-            n = clean_text(n)
-            # find possible citations 
-            n = replaceBook(n)
-            print(n)
-            match = re.findall(r'([a-z*]+ [\d*\,\&\-\— ]+)', n)
-            # print(match)
-            c,o = [],[]
-            if len(match) > 0: 
-                for item in match:
-                    item = item.strip(" ")
-                    item = re.sub(r"([^0-9a-z*])$","",item)
-                    item = item.split(" ")
-                    book = item[0]
-                    if len(item) == 2 and item[1] == "&":
-                        continue # trivial case of "<word> &"
-                    item = " ".join(item)
-                    if book not in abbrev and book not in numBook.values():
-                        o.append(item) 
-                    else: 
-                        print(item)
-                        decomposed = findCitations(item)
-                        print(idx, decomposed)
-                        c.extend(decomposed[0])
-                        o.extend(decomposed[1])
-                info_dict['citations'] = "; ".join(c) 
-                info_dict['outliers'] = "; ".join(o)
-                outputs.append(info_dict)
-                citations.extend(c)
-                outliers.extend(o)
-            if (idx+1) % 100000 == 0: 
-                print(f"Processed {idx+1} entries")
-
-# test()
