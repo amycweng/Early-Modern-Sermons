@@ -14,7 +14,7 @@ def extract_citations(n):
     # print(match)
     if len(match) > 0: 
         for ref, item in enumerate(match):
-            item = re.sub(r"([^0-9a-z*])$","",item)
+            item = re.sub(r"([^0-9a-z*])$","",item) # remove trailing characters 
             item = item.split(" ")
             # accounting for case where the chapter number precedes the book's name 
             if re.search(r"\d+", item[0]):
@@ -69,10 +69,10 @@ roman_to_int = {"i": 1, "v": 5, "x": 10, "l": 50, "c": 100, "d": 500, "m": 1000}
 def convert_numeral(word):
     if word == "civ": 
         return word 
-    if not re.search(r'^(c{0,3})(xc|xl|l?x{0,3})(ix|iv|v?i{0,3})$', word.lower().strip(".")): 
+    word = re.sub(r"[^a-z]", word)
+    if not re.search(r'^(c{0,3})(xc|xl|l?x{0,3})(ix|iv|v?i{0,3})$', word): 
         return word 
     num = 0
-    word = word.lower().strip(".") # strip period if Roman numeral 
     for idx, n in enumerate(word):
         if idx > 0 and roman_to_int[n] > roman_to_int[word[idx - 1]]:
             # case where we are one less than a multiple of ten or five (e.g., IX or IV)
@@ -91,12 +91,13 @@ def replaceBook(text):
     replaced = []
     for idx, word in enumerate(text): 
         if idx+1 in range(len(text)): # must be followed by at least one number 
-            if not re.match(r'^[0-9*\,\-\—\*\.\:]+$',text[idx+1]): 
+            follow = convert_numeral(re.sub(r"([^\w\d\*])$","",text[idx+1])) # remove trailing punctuation
+            if not re.match(r'^[0-9*\,\-\—\*\.\:]+$',follow): 
                 continue 
-        text[idx] = convert_numeral(word)
         word = clean_word(text[idx])
         # identififed a valid abbreviation         
         if word in abbrev_to_book:
+            if word == "sam": print(text)
             # update term to the normalized version 
             word = abbrev_to_book[word]
             orig = text[idx]
@@ -107,7 +108,8 @@ def replaceBook(text):
                 # do not convert 'ch' or 'the' if it is not preceded and succeeded by a number or an asterisk 
                 if idx > 0: 
                     # the case of "1, Kings"
-                    prev = re.sub(r"([^\w\d\*])$","",text[idx-1])
+                    prev = re.sub(r"([^\w\d\*])$","",text[idx-1]) # remove trailing punctuation
+                    prev = convert_numeral(prev)
                     if not re.search(r'^[1-3\*{1}]\.{0,}$',prev):
                         continue 
                     else: 
@@ -119,12 +121,16 @@ def replaceBook(text):
             text[idx] = word  
     text = " ".join(text)
     numBooks = re.findall(r"([1-3\*{1}]) (samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john)",text)
+    # case of a marginal note containing a single citation, e.g., "Sam. 15. 22."
+    numBooks.extend(re.findall(r"^(samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john)",text))
     # convert all numbered books into a single token ("1 corinthians" --> "onecorinthians")
-    for num, book in numBooks: 
-        if num == "*": 
+    for entry in numBooks: 
+        if len(entry) == 1: 
             text = re.sub(r"\* {book}",f"unknown{book}",text)
-        elif f"{num} {book}" in numBook: 
-            text = re.sub(f"{num} {book}",f"{num_to_text[num]}{book}",text)
+        elif entry[0] == "*": 
+            text = re.sub(r"\* {book}",f"unknown{book}",text)
+        elif f"{entry[0]} {book}" in numBook: 
+            text = re.sub(f"{entry[0]} {book}",f"{num_to_text[entry[0]]}{book}",text)
     return text, replaced
 
 def find_matches(text):
@@ -132,6 +138,7 @@ def find_matches(text):
     for idx, t in enumerate(text): 
         if not re.search(r"[A-Za-z]", t): 
             text[idx] = re.sub(r"[\.\:]"," ",t)
+        text = re.sub(r"[\(\)\.\'\"]","",t) 
     text = re.sub(r"\s+"," "," ".join(text))
     text_str = text
     count = 0 
@@ -158,7 +165,7 @@ def find_matches(text):
                     current = [t]
             else: 
                 current = [t]
-        elif len(current) > 0 and re.search(r"[0-9*]+", t): 
+        elif len(current) > 0 and re.search(r"[0-9*\,\&\-\—]+", t): 
             if re.search(r"[A-Za-z]",t):
                 continue
             current.append(t)
