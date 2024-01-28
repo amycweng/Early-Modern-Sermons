@@ -55,7 +55,7 @@ def clean_text(n):
 
 def clean_word(word): 
     word = word.lower().strip(".")
-    word = re.sub(r"([^\w\d\*])$","",word)
+    word = re.sub(r"([^a-z0-9\*])$","",word)
     word = re.sub("v","u",word) # replace all v's with u's 
     word = re.sub(r"^i","j",word) # replace initial i's to j's 
     word = re.sub(r"(?<=\w)y(?=\w)","i",word) # replace y's that occur within words into i's
