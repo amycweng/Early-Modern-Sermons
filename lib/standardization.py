@@ -73,6 +73,7 @@ def convert_numeral(word):
     if not re.search(r'^(c{0,3})(xc|xl|l?x{0,3})(ix|iv|v?i{0,3})$', word): 
         return word 
     num = 0
+    word = word.lower().strip(".") # strip period if Roman numeral 
     for idx, n in enumerate(word):
         if idx > 0 and roman_to_int[n] > roman_to_int[word[idx - 1]]:
             # case where we are one less than a multiple of ten or five (e.g., IX or IV)

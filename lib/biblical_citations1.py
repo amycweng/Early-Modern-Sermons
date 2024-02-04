@@ -87,21 +87,7 @@ class Sermon():
                 if len(o) > 0: 
                     self.outliers[f"{loc}_{type}_{idx}"] = o 
 
-    # def adorn(self,cleaned,type):
-        # lib = os.getcwd() #current directory
-        # repo = "/".join(lib.split("/")[:-1])
-        # print(repo)
-        # with open(f"{repo}/plain/{self.tcpid}_{type}.txt","w+") as file:
-        #     for text_id, info in cleaned.items(): 
-        #         PARAGRAPHDELIMITER =  
-        # os.chdir('../../morphadorner-2')
-        # subprocess.run(['sudo','./adornplainemetext', f"{repo}/outputs/adorned", f"{repo}/plain/{self.tcpid}_{type}.txt"])
-        # os.chdir(lib)
-        # # dir_list = os.listdir(pdtb_output_dir)
-        # pipe = f'{pdtb_output_dir}/{essay_name}.pipe'
-        # parsings = open(pipe, 'r').read().split('\n')
-        # list_parsings = [x.split('|') for x in parsings]
-        
+
 
 
     # def segment(self,cleaned,type): 

@@ -1,7 +1,6 @@
 import csv,os,re
 from collections import Counter,defaultdict 
 from bs4 import BeautifulSoup, SoupStrainer
-from nltk.tokenize import sent_tokenize
 
 info = {}
 with open('../assets/sermons.csv', 'r') as file:          
@@ -42,7 +41,7 @@ def find_target(target,citations):
     return Counter(hits),positions
 
 # get file path to TCP XML 
-TCP = '/Users/amycweng/Digital Humanities/TCP'
+TCP = '/Users/amycweng/DH/TCP'
 
 def findTextTCP(id):
     if re.match('B1|B4',id[0:2]):
@@ -55,34 +54,34 @@ def findTextTCP(id):
     return path 
 
 
-# get contexts for marginal citations 
-def context(tcpID, positions):
-    filepath = findTextTCP(tcpID)
-    find_pos = {int(sources[int(k)][0]):[] for k in positions[tcpID]}
-    for k in positions[tcpID]: 
-        find_pos[int((sources[int(k)][0]))].append(int(sources[int(k)][1]))
-    # read the input XML file 
-    with open(filepath,'r') as file: 
-        data = file.read()
-    # use soupstrainer to only parse the main body
-    tag = SoupStrainer("div1")
-    # create a parsed tree, i.e., soup, of the body text using an html parser, which keeps track of line numbers
-    soup = BeautifulSoup(data,features="html.parser",parse_only=tag)
-    # iterate through every marginal note tag of this file 
-    notes = soup.find_all('note')
-    notes_contexts = defaultdict(list)
-    for note in notes: 
-        if note.get("place") == "marg":
-            if note.sourceline in find_pos:
-                if note.sourcepos in find_pos[note.sourceline]:
-                    parent = note.parent  
-                    parent_text = re.sub(re.escape(note.text), "<CITATION>", parent.text)
-                    parent_text = re.sub(r"[\s+\n]"," ", parent_text)
-                    sentences = sent_tokenize(parent_text)
-                    for s in sentences: 
-                        if "<CITATION>" in s: 
-                            if note.sourceline not in notes_contexts: 
-                                notes_contexts[note.sourceline] = {}
-                            notes_contexts[note.sourceline][note.sourcepos] = s 
+# # get contexts for marginal citations 
+# def context(tcpID, positions):
+#     filepath = findTextTCP(tcpID)
+#     find_pos = {int(sources[int(k)][0]):[] for k in positions[tcpID]}
+#     for k in positions[tcpID]: 
+#         find_pos[int((sources[int(k)][0]))].append(int(sources[int(k)][1]))
+#     # read the input XML file 
+#     with open(filepath,'r') as file: 
+#         data = file.read()
+#     # use soupstrainer to only parse the main body
+#     tag = SoupStrainer("div1")
+#     # create a parsed tree, i.e., soup, of the body text using an html parser, which keeps track of line numbers
+#     soup = BeautifulSoup(data,features="html.parser",parse_only=tag)
+#     # iterate through every marginal note tag of this file 
+#     notes = soup.find_all('note')
+#     notes_contexts = defaultdict(list)
+#     for note in notes: 
+#         if note.get("place") == "marg":
+#             if note.sourceline in find_pos:
+#                 if note.sourcepos in find_pos[note.sourceline]:
+#                     parent = note.parent  
+#                     parent_text = re.sub(re.escape(note.text), "<CITATION>", parent.text)
+#                     parent_text = re.sub(r"[\s+\n]"," ", parent_text)
+#                     sentences = sent_tokenize(parent_text)
+#                     for s in sentences: 
+#                         if "<CITATION>" in s: 
+#                             if note.sourceline not in notes_contexts: 
+#                                 notes_contexts[note.sourceline] = {}
+#                             notes_contexts[note.sourceline][note.sourcepos] = s 
                     
-    return notes_contexts
+#     return notes_contexts
