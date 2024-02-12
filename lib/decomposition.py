@@ -7,7 +7,7 @@ e.g, "isaiah 1 2, 3, 4, 5 5" --> "isaiah 1.2", "isaiah 1.3", "isaiah 1.4", "Isai
 def comma(book, passage): 
     phrases = []
     # make sure there is always at least one space after a comma
-    passage = re.sub(',',', ',passage)
+    passage = re.sub(' ,',', ',passage)
     # remove duplicate spaces 
     passage = re.sub('  ',' ',passage)  
     passage = re.sub(rf'{book}| ,','',passage).strip()

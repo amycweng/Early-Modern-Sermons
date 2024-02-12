@@ -72,20 +72,7 @@ class Sermon():
                 p_idx += 1 
         return paragraphs, notes_dict
     
-    def identify_citations(self,text_dict,type):
-        for loc, info in text_dict.items():
-            for idx, text in info.items(): 
-                c, o, cleaned,replaced = extract_citations(text)
-                if type == "N": 
-                    self.cleaned_n[f"{loc}_{type}_{idx}"] = cleaned 
-                else: 
-                    self.cleaned_p[f"{loc}_{type}_{idx}"] = cleaned 
-                # print(c,o, text)
-                if len(c) > 0: 
-                    self.citations[f"{loc}_{type}_{idx}"] = c 
-                    self.replaced[f"{loc}_{type}_{idx}"] = replaced
-                if len(o) > 0: 
-                    self.outliers[f"{loc}_{type}_{idx}"] = o 
+
 
     # def adorn(self,cleaned,type):
         # lib = os.getcwd() #current directory
