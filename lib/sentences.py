@@ -7,6 +7,9 @@ class Sentences():
         self.sentences = []
         self.notes_spans = defaultdict(list)# sentence idx to list of note indices
         self.segment()
+        # for s in self.sentences: 
+        #     if len(s[2]) != len(s[3]): 
+        #         print('uh oh')
         self.fix_illegible_and_get_notes()
 
 
@@ -22,6 +25,7 @@ class Sentences():
 
         # tcpID, sermon, start_page, sent_idx, sentence, sentence_pos, sentence_lemmas   
         for idx, item in enumerate(adorned): 
+            
             parts = item.strip("\n").split("\t")
             if len(item) == 0: continue
 
@@ -31,7 +35,10 @@ class Sentences():
             def update(t,p,l): 
                 curr_sentence.append(t)
                 if not re.search("STARTITALICS|NONLATINALPHABET|ENDITALICS|STARTNOTE\d+|ENDNOTE\d+",t):
-                    curr_lemma.append(l)
+                    if re.search("^[vV]er$",t): # sometimes ver gets turned into for
+                        curr_lemma.append(t)
+                    else: 
+                        curr_lemma.append(l)
                     curr_pos.append(p)
                 else:
                     curr_lemma.append(t)
@@ -118,6 +125,7 @@ class Sentences():
             # if len(sentences)>25:
             #     break
         self.sentences = sentences
+
 
     def fix_illegible_and_get_notes(self): 
         with open(f"../assets/plain/{self.tcpID}.txt","r") as file: 

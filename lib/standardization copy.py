@@ -45,7 +45,7 @@ def clean_text(n):
     # remove everything that is not an alphabetical character, integer, comma, ampersand, hyphen, asterisk, period, apostrophe or a single space
     n = re.sub(r'[^\w\d\,\&\-\—\*\(\)\.\'\" ]','',n)
     # strip away letters indicating verse or chapter, as well as the phrase 'of Sol' which follows 'Song' or 'Wisdom'
-    n = re.sub(r"\b[cC]\b|\b[lL]\b|\b[vV]\b|\b[vV]erse\b|\b[vV]ers\b|\b[vV]er\b|\b[cC]ap\b|\b[Cc]hap\b|\b[cC]hapter\b","",n)
+    n = re.sub(r"\bc\b|\bl\b|\bv\b|\bverse\b|\bvers\b|\bver\b|\bcap\b|\bchap\b|\bchapter\b|\bof Solomon\b|\bof Sol\b|","",n)
     # normalize conjunctions 
     n = re.sub(r"\band\b|\bet\b",' & ', n)
     # strip out periods 
