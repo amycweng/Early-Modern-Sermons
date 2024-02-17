@@ -7,9 +7,6 @@ class Sentences():
         self.sentences = []
         self.notes_spans = defaultdict(list)# sentence idx to list of note indices
         self.segment()
-        # for s in self.sentences: 
-        #     if len(s[2]) != len(s[3]): 
-        #         print('uh oh')
         self.fix_illegible_and_get_notes()
 
 

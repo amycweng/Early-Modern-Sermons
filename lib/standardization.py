@@ -9,10 +9,11 @@ def extract_citations(n):
     citations, outliers = {}, {}
     n = clean_text(n)
     n,replaced = replaceBook(n)
-    match,text_str = find_matches(n)
-    # print(match)
+    match = find_matches(n)
+    text_str = n 
     if len(match) > 0: 
         for ref, item in enumerate(match):
+            text_str = re.sub(item, f"<REF{ref}>",text_str, 1)
             item = re.sub(r"([^0-9a-z*])$","",item) # remove trailing characters 
             item = item.split(" ")
             if not re.search(r"[0-9\*]",item[1]): 
@@ -43,20 +44,20 @@ def extract_citations(n):
 
 def clean_text(n): 
     # remove everything that is not an alphabetical character, integer, comma, ampersand, hyphen, asterisk, period, apostrophe or a single space
-    n = re.sub(r'[^\w\d\,\&\-\—\*\(\)\.\'\" ]','',n)
+    n = re.sub(r'[^\w\d\,\&\-\—\*\(\)\.\'\"\: ]','',n)
+    # strip out periods and colons 
+    n = re.sub(r"\.|\:", " ",n)
     # strip away letters indicating verse or chapter, as well as the phrase 'of Sol' which follows 'Song' or 'Wisdom'
-    n = re.sub(r"\b[cC]\b|\b[lL]\b|\b[vV]\b|\b[vV]erse\b|\b[vV]ers\b|\b[vV]er\b|\b[cC]ap\b|\b[Cc]hap\b|\b[cC]hapter\b","",n)
+    n = re.sub(r"\b[cC]\b|\b[lL]\b|\b[vV]\b|\b[vV]erse\b|\b[vV]ers\b|\b[vV]er\b|\b[cC]ap\b|\b[Cc]hap\b|\b[cC]hapter\b|\bof Sol\b|\bof Solomon\b","",n)
     # normalize conjunctions 
     n = re.sub(r"\band\b|\bet\b",' & ', n)
-    # strip out periods 
-    n = re.sub(r"\.", " ",n)
     # replace all instances of multiple white spaces with a single space. 
     n = re.sub(r'\s+',' ',n)
     return n 
 
 def clean_word(word): 
     word = word.lower()
-    word = re.sub(r"([^\w\*])$","",word)
+    word = re.sub(r"[^A-Za-z\*]","",word)
     word = re.sub("v","u",word) # replace all v's with u's 
     word = re.sub(r"^i","j",word) # replace initial i's to j's 
     word = re.sub(r"(?<=\w)y(?=\w)","i",word) # replace y's that occur within words into i's
@@ -102,29 +103,34 @@ def replaceBook(text):
             # update term to the normalized version 
             word = abbrev_to_book[word]
             orig = text[idx]
-            # non-scriptural references to an epistle
-            if word == 'epistle' and idx > 0:
-                continue
-            elif re.search('samuel|kings|chronicles|corinthians|thessalonians|timothy|peter',word): 
+            if re.search('samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|esdras|maccabees',word): 
                 # do not convert 'ch' or 'the' if it is not preceded and succeeded by a number or an asterisk 
                 if idx > 0: 
                     # the case of "1, Kings"
                     prev = re.sub(r"([^\w\d\*])$","",text[idx-1]) # remove trailing punctuation
                     prev = convert_numeral(prev)
-                    if not re.search(r'^[1-3\*{1}]\.{0,}$',prev):
-                        continue 
-                    else: 
+                    if re.search(r'^[1-3\*{1}]\.{0,}$',prev):
                         text[idx-1] = prev
                         orig = prev + " " + orig
-                else: 
-                    continue
+                    elif re.search(r"^\d",text[idx]): 
+                        num = re.findall(r"^\d",text[idx])[0]
+                        if f"{num} {word}" in numBook: 
+                            word = f"{num_to_text[num]}{word}"
+                        else: continue
+                    else: continue
+                elif re.search(r"^\d",text[idx]): 
+                    num = re.findall(r"^\d",text[idx])[0]
+                    if f"{num} {word}" in numBook: 
+                        word = f"{num_to_text[num]}{word}"
+                    else: continue
+                else: continue
             replaced.append(orig)
             text[idx] = word  
     text = " ".join(text)
-    numBooks = re.findall(r"([1-3\*{1}]) (samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john)",text)
+    numBooks = re.findall(r"([1-3\*{1}]) (samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john|esdras|maccabees)",text)
 
     # case of a marginal note containing a single citation, e.g., "Sam. 15. 22."
-    numBooks.extend(re.findall(r"^(samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john)",text))
+    numBooks.extend(re.findall(r"^(samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john|esdras|maccabees)",text))
     # convert all numbered books into a single token ("1 corinthians" --> "onecorinthians")
     for entry in numBooks: 
         if len(entry) == 1:
@@ -139,7 +145,6 @@ def replaceBook(text):
     return text, replaced
 
 def find_matches(text):
-    text_str = text 
     text = text.split(" ")
     count = 0 
     matches = []
@@ -148,7 +153,6 @@ def find_matches(text):
         if t in abbrev or t in numBook_to_proper:
             if len(current) > 1 and re.search(r"[0-9\*]",current[1]): 
                 matches.append(" ".join(current))
-                text_str = re.sub(re.escape(" ".join(current)), f"(REF{count})",text_str)
                 count += 1 
             if idx > 0 and t not in numBook_to_proper and len(current) == 0:
                 if re.search(r"^[0-9*]+$", text[idx-1]): 
@@ -173,16 +177,14 @@ def find_matches(text):
         elif len(current) > 1 and re.search(r"[0-9\*]",current[1]):
             # have reached the end of a relevant citation  
             matches.append(" ".join(current))
-            text_str = re.sub(re.escape(" ".join(current)), f"(REF{count})",text_str)
             count += 1 
             current = []
 
     if len(current) > 1 and re.search(r"[0-9\*]",current[1]):
         # have reached the end of a relevant citation  
         matches.append(" ".join(current))
-        text_str = re.sub(re.escape(" ".join(current)), f"(REF{count})",text_str)
 
-    return matches, text_str 
+    return matches
         
 
 '''Main function to actually extract all of the Biblical citations'''

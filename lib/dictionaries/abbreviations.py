@@ -54,6 +54,7 @@ abbrev = { # 1629 terms in total
     'canticles':
     [
         'ca*tic',
+        'can',
         'cant',
         'cant*',
         'canti',
@@ -67,6 +68,26 @@ abbrev = { # 1629 terms in total
         'cnt',
         'song',
         'songs',
+    ],
+    'children': [
+        'chidlren',
+        'chilaren',
+        'childaen',
+        'childen',
+        'childeren',
+        'childr*',
+        'childre',
+        'childre*',
+        'childrenne',
+        'childres',
+        'childreu',
+        'childrin',
+        'chilren',
+        'child',
+        'ch*ld',
+        'chil*',
+        'child*',
+        'childi',
     ],
     'chronicles':
     [
@@ -322,6 +343,13 @@ abbrev = { # 1629 terms in total
         'eclus',
         'ecolus',
         'eeclus',
+        's*rach',
+        'seirach',
+        'sirac',
+        'sirache',
+        'sirachi',
+        'sirachs',
+        'sirack'
     ],
     'ephesians':
     [
@@ -400,6 +428,15 @@ abbrev = { # 1629 terms in total
         'epst',
         'ept',
     ],
+    'esdras': [
+        'esdras',
+        'edras',
+        'es*ras',
+        'esdr',
+        'esdra',
+        'esdra*',
+        'esdros',
+    ],
     'esther':
     [
         '*ster',
@@ -425,7 +462,6 @@ abbrev = { # 1629 terms in total
         'esth*r',
         'esther',
         'et',
-        'eth',
         'h*ster',
         'hest',
         'heste',
@@ -529,7 +565,6 @@ abbrev = { # 1629 terms in total
         'e*ra',
         'era',
         'erza',
-        'esaras',
         'esra',
         'exra',
         'ez',
@@ -1140,6 +1175,23 @@ abbrev = { # 1629 terms in total
         'luke*',
         'lukke',
     ],
+    'maccabees': [
+        'macabee',
+        'macabeus',
+        'maccab',
+        'maccabaeus',
+        'maccabee',
+        'maccabes',
+        'maccabeus',
+        'maccaboeus',
+        'macchabaeis',
+        'macchabaeus',
+        'macchabeus',
+        'machabaees',
+        'machabee',
+        'machabes',
+        'maeccabaeus'
+    ],
     'malachi':
     [
         'lach',
@@ -1172,6 +1224,30 @@ abbrev = { # 1629 terms in total
         'mall',
         'mallac',
         'ml',
+    ],
+    'manasseh': [
+        'm*nasseh',
+        'ma*asseh',
+        'maasheh',
+        'mamasseh',
+        'mana*se',
+        'manass',
+        'manass*',
+        'manassah',
+        'manassch',
+        'manasse',
+        'manasse*',
+        'manasseb',
+        'manassehs',
+        'manasses',
+        'manasseth',
+        'manesseh',
+        'mannasseh',
+        'mannasses',
+        'menasseh',
+        'menasseth',
+        'mnassah',
+        'monasseh'
     ],
     'mark':
     [
@@ -1669,6 +1745,25 @@ abbrev = { # 1629 terms in total
         'su*m',
         'sumuel'
     ],
+    'susanna': [
+        's*san',
+        'shusan',
+        'shushan',
+        'sufan',
+        'sus*n',
+        'susa',
+        'susae',
+        'susanah',
+        'susanma',
+        'susanne',
+        'sushan',
+        'susiana',
+        'suzan',
+        'susannae',
+        'susannah',
+        'susannahs',
+        'susannam'
+    ],
     'thessalonians':
     [
         't**ss',
@@ -1839,6 +1934,7 @@ abbrev = { # 1629 terms in total
 # dictionary mapping each abbreviation to its standard form 
 abbrev_to_book = {}
 for book, abbrev_list in abbrev.items():
+    abbrev_to_book[book] = book
     for a in abbrev_list: 
         abbrev_to_book[a] = book
 
