@@ -83,8 +83,9 @@ class Sentences():
                         if re.search(r"STARTNOTE\d+|NONLATINALPHABET",next_token):
                             # if the first token of the next predicted sentence is the beginning of a note or a section of non-Latin text.  
                             continue
-                        elif re.search(r"crd", pos) and re.search("fw", next_pos): 
-                            # current token is a number and the next word is foreign (in the case of Latin quotations right after a verse)
+                        elif re.search(r"np1", pos) and re.search("fw", next_pos): 
+                            # current EOS token is a proper noun and the next word is foreign 
+                            # (in the case of Latin quotations right after a person's name) 
                             continue
                         else: 
                             if re.search(r"ENDITALICS",next_token): 
@@ -101,7 +102,7 @@ class Sentences():
                                                 e + " " + " ".join(curr_lemma))
                             elif len(sentences) > 0:                    
                                 a,b,c,d,e = sentences[-1]
-                                if "crd" in e.split(" ")[-1] or "crd" in e.split(' ')[-2]:
+                                if "crd" in d.split(" ")[-1] or "crd" in d.split(' ')[-2]:
                                     sentences[-1] = (a,b,
                                                     c+ " " + " ".join(curr_sentence),
                                                     d + " " + " ".join(curr_pos),

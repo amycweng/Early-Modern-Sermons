@@ -9,7 +9,7 @@ with open(f"../assets/encoded/{tcpID}.json","r") as file:
     data = json.load(file)
 
 encodings, citation_info = data 
-italicized = [item[2] for item in encodings if 
+italicized = [item[4] for item in encodings if 
                                         item[5] in ["B-IT","I-IT"] 
                                         and len(item[2]) > 3 
                                         and re.search(r"^[A-Z]",item[2])

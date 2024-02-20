@@ -13,10 +13,10 @@ def extract_citations(n):
     text_str = n 
     if len(match) > 0: 
         for ref, item in enumerate(match):
-            text_str = re.sub(item, f"<REF{ref}>",text_str, 1)
-            item = re.sub(r"([^0-9a-z*])$","",item) # remove trailing characters 
+            text_str = re.sub(re.escape(item), f"<REF{ref}>",text_str, 1)
+            item = re.sub(r"([^0-9a-z*\^])$","",item) # remove trailing characters 
             item = item.split(" ")
-            if not re.search(r"[0-9\*]",item[1]): 
+            if not re.search(r"[0-9\*\^]",item[1]): 
                 continue
             # accounting for case where the chapter number precedes the book's name 
             if re.search(r"\d+", item[0]):
@@ -44,7 +44,7 @@ def extract_citations(n):
 
 def clean_text(n): 
     # remove everything that is not an alphabetical character, integer, comma, ampersand, hyphen, asterisk, period, apostrophe or a single space
-    n = re.sub(r'[^\w\d\,\&\-\—\*\(\)\.\'\"\: ]','',n)
+    n = re.sub(r'[^\w\d\,\&\-\—\*\(\)\^\.\'\"\: ]','',n)
     # strip out periods and colons 
     n = re.sub(r"\.|\:", " ",n)
     # strip away letters indicating verse or chapter, as well as the phrase 'of Sol' which follows 'Song' or 'Wisdom'
@@ -92,8 +92,8 @@ def replaceBook(text):
     replaced = []
     for idx, word in enumerate(text): 
         if idx+1 in range(len(text)): # must be followed by at least one number 
-            follow = convert_numeral(re.sub(r"([^\w\d\*])$","",text[idx+1])) # remove trailing punctuation
-            if not re.match(r'^[0-9\*]+$',follow): 
+            follow = convert_numeral(re.sub(r"([^\w\d\*\^])$","",text[idx+1])) # remove trailing punctuation
+            if not re.match(r'^[0-9\*\^]+$',follow): 
                 continue 
        
         word = clean_word(text[idx])
@@ -107,7 +107,7 @@ def replaceBook(text):
                 # do not convert 'ch' or 'the' if it is not preceded and succeeded by a number or an asterisk 
                 if idx > 0: 
                     # the case of "1, Kings"
-                    prev = re.sub(r"([^\w\d\*])$","",text[idx-1]) # remove trailing punctuation
+                    prev = re.sub(r"([^\w\d\*\^])$","",text[idx-1]) # remove trailing punctuation
                     prev = convert_numeral(prev)
                     if re.search(r'^[1-3\*{1}]\.{0,}$',prev):
                         text[idx-1] = prev
@@ -151,11 +151,11 @@ def find_matches(text):
     current = []
     for idx, t in enumerate(text): 
         if t in abbrev or t in numBook_to_proper:
-            if len(current) > 1 and re.search(r"[0-9\*]",current[1]): 
+            if len(current) > 1 and re.search(r"[0-9\*\^]",current[1]): 
                 matches.append(" ".join(current))
                 count += 1 
             if idx > 0 and t not in numBook_to_proper and len(current) == 0:
-                if re.search(r"^[0-9*]+$", text[idx-1]): 
+                if re.search(r"^[0-9*\^]+$", text[idx-1]): 
                     # check the next two numbers 
                     if (idx+1) < len(text) and (idx+2) < len(text):
                         if re.search(r"^[0-9]+$", text[idx+1]) and re.search(r"^[0-9]+$", text[idx+2]): 
@@ -168,19 +168,19 @@ def find_matches(text):
                     current = [t]
             else: 
                 current = [t]
-        elif len(current) > 0 and re.search(r"[0-9*\,\&\-\—]+", t): 
+        elif len(current) > 0 and re.search(r"[0-9*\^\,\&\-\—]+", t): 
             if re.search(r"[A-Za-z]",t):
                 continue
             current.append(t)
         elif len(current)>0 and re.search(r'^ch$',t): 
             current.append(t)
-        elif len(current) > 1 and re.search(r"[0-9\*]",current[1]):
+        elif len(current) > 1 and re.search(r"[0-9\*\^]",current[1]):
             # have reached the end of a relevant citation  
             matches.append(" ".join(current))
             count += 1 
             current = []
 
-    if len(current) > 1 and re.search(r"[0-9\*]",current[1]):
+    if len(current) > 1 and re.search(r"[0-9\*\^]",current[1]):
         # have reached the end of a relevant citation  
         matches.append(" ".join(current))
 
@@ -192,7 +192,7 @@ def decompose(phrase):
     # initialize lists to keep track of the properly formatted citations and possible formats that this code cannot currently account for 
     citations, outliers = [], []
     # only a chapter-level citation
-    if re.search(r'^[a-z]+ [0-9*]+$',phrase):
+    if re.search(r'^[a-z]+ [0-9\*\^]+$',phrase):
         citations.append(phrase.strip())
         citations = proper_title(citations)
         return citations, outliers 
@@ -206,7 +206,7 @@ def decompose(phrase):
         phrase = re.sub('\,$| \,$','',phrase)
     
     # if the text is simply a single citation, call simple() to append the citation to the list of citations 
-    if re.search(r'^[0-9\*]+ [0-9\*]+$',phrase):  
+    if re.search(r'^[0-9\*]+ [0-9\*\^]+$',phrase):  
         citations.append(simple(book, phrase))
     # if there are ampersands in the text, split the text up by the ampersands 
     elif re.search('&',phrase): 

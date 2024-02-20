@@ -1,7 +1,7 @@
 
 '''Standardization dictionaries'''
 # Dictionary that maps each book of the Bible and the Apocrypha to their abbreviatons
-abbrev = { # 1629 terms in total 
+abbrev = { 
     'acts':
     [
         '*ctes',
@@ -35,6 +35,11 @@ abbrev = { # 1629 terms in total
         'ams',
         'aom',
         'aos',
+    ],
+    'azariah': [
+        'azaria',
+        'azariab',
+        'azarias',
     ],
     'baruch':
     [
@@ -119,6 +124,10 @@ abbrev = { # 1629 terms in total
         'cro',
         'cron',
         'cron*',
+        'paralip',
+        'parali',
+        'paral',
+        'para'
     ],
     'colossians':
     [
@@ -1916,6 +1925,10 @@ abbrev = { # 1629 terms in total
         'zephaniah',
         'zephany',
         'zepho'
+    ],
+    'ibidem': [
+        # special case 
+        'ibid'
     ]
     # Mos? 
     # A96530,sermon,375,81,"Song of Sol. 2. 1, 2."
