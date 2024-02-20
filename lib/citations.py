@@ -11,11 +11,10 @@ all_encodings = {}
 all_citations = {}
 all_sentences = {}
 for sent_idx, tuple in enumerate(Text.sentences):
-    # if sent_idx != 7: continue
 
     all_encodings[sent_idx] = []
-    sermon_idx, start_page, s, p, l = tuple 
-    all_sentences[sent_idx] = (sermon_idx, start_page)
+    sermon_idx, start_page, paragraph, s, p, l = tuple 
+    all_sentences[sent_idx] = (sermon_idx, start_page, paragraph)
 
     sentence, pos, lemmatized = [], [] ,[]
     s, p, l = s.split(" "), p.split(" "),l.split(" ")

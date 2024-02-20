@@ -9,12 +9,11 @@ class Sentences():
         self.segment()
         self.fix_illegible_and_get_notes()
 
-
     def segment(self): 
-        with open(f"../assets/adorned/{self.tcpID}.txt","r") as file: 
+        with open(f"../assets/adorned/{self.tcpID}-001.txt","r") as file: 
             adorned = file.readlines()
         sentences = []
-        curr_sermon, curr_page = 0, None
+        curr_sermon, curr_page, curr_paragraph = 0, None, 0
         curr_sentence = []
         curr_pos = []
         curr_lemma = []
@@ -47,7 +46,8 @@ class Sentences():
                 curr_page = None # fill in later by subtracting from the next known page 
             elif re.search(r"PAGE\d+",token): 
                 curr_page = int(re.findall('\d+',token)[0]) 
-            
+            elif re.search(r"PARAGRAPH\d+",token):
+                curr_paragraph += 1 
             else: 
                 
                 
@@ -95,25 +95,28 @@ class Sentences():
                                 adorned[idx+1] = ""
                             
                             if (re.search(r"^[a-z0-9]",curr_sentence[0]))and len(sentences) > 0: 
-                                a,b,c,d,e = sentences[-1]
-                                sentences[-1] = (a,b,
-                                                c+ " " + " ".join(curr_sentence),
-                                                d + " " + " ".join(curr_pos),
-                                                e + " " + " ".join(curr_lemma))
+                        
+                                serm,page,para,c,d,e = sentences[-1]
+                                if curr_paragraph == para: 
+                                    sentences[-1] = (serm,page,para,
+                                                    c+ " " + " ".join(curr_sentence),
+                                                    d + " " + " ".join(curr_pos),
+                                                    e + " " + " ".join(curr_lemma))
+                            
                             elif len(sentences) > 0:                    
-                                a,b,c,d,e = sentences[-1]
-                                if "crd" in d.split(" ")[-1] or "crd" in d.split(' ')[-2]:
-                                    sentences[-1] = (a,b,
+                                serm,page,para,c,d,e = sentences[-1]
+                                if curr_paragraph == para and "crd" in d.split(" ")[-1] or "crd" in d.split(' ')[-2]:
+                                    sentences[-1] = (serm,page,para,
                                                     c+ " " + " ".join(curr_sentence),
                                                     d + " " + " ".join(curr_pos),
                                                     e + " " + " ".join(curr_lemma))
                                 else: 
-                                    sentences.append((curr_sermon, curr_page,
+                                    sentences.append((curr_sermon, curr_page, curr_paragraph, 
                                                     " ".join(curr_sentence),
                                                     " ".join(curr_pos),
                                                     " ".join(curr_lemma)))
                             else: 
-                                sentences.append((curr_sermon, curr_page,  
+                                sentences.append((curr_sermon, curr_page, curr_paragraph, 
                                                 " ".join(curr_sentence),
                                                 " ".join(curr_pos),
                                                 " ".join(curr_lemma)))
@@ -133,7 +136,7 @@ class Sentences():
             illegible.extend(re.findall(r"^(\*[\w\*]+)",word))
         illegible_dict = {word:None for word in illegible}
         for s_idx, tuple in enumerate(self.sentences): 
-            sentence, pos, lemma = tuple[2:]
+            sentence, pos, lemma = tuple[3:]
             sentence, pos, lemma = sentence.split(" "), pos.split(" "), lemma.split(" ")
             note_start = None
             for idx, word in enumerate(sentence): 
@@ -153,7 +156,7 @@ class Sentences():
             sentence = [_ for _ in sentence if len(_) > 0]
             lemma = [_ for _ in lemma if len(_) > 0]
             pos = [_ for _ in pos if len(_) > 0]
-            self.sentences[s_idx] = (tuple[0], tuple[1], " ".join(sentence), " ".join(pos), " ".join(lemma))
+            self.sentences[s_idx] = (tuple[0], tuple[1], tuple[2]," ".join(sentence), " ".join(pos), " ".join(lemma))
 
                 
 
