@@ -7,10 +7,9 @@ class Sentences():
         self.sentences = []
         self.notes_spans = defaultdict(list)# sentence idx to list of note indices
         self.segment()
-        self.fix_illegible_and_get_notes()
 
     def segment(self): 
-        with open(f"../assets/adorned/{self.tcpID}-001.txt","r") as file: 
+        with open(f"../assets/adorned/{self.tcpID}.txt","r") as file: 
             adorned = file.readlines()
         sentences = []
         curr_sermon, curr_page, curr_paragraph = 0, None, 0
@@ -26,7 +25,7 @@ class Sentences():
             if len(item) == 0: continue
 
             token, pos, lemma, EOS = parts[0], parts[2], parts[4], parts[5]
-            
+            if "^" in token: lemma = token
 
             def update(t,p,l): 
                 curr_sentence.append(t)
@@ -48,6 +47,14 @@ class Sentences():
                 curr_page = int(re.findall('\d+',token)[0]) 
             elif re.search(r"PARAGRAPH\d+",token):
                 curr_paragraph += 1 
+                if len(curr_sentence) > 0: 
+                    sentences.append((curr_sermon, curr_page, curr_paragraph, 
+                                        " ".join(curr_sentence),
+                                        " ".join(curr_pos),
+                                        " ".join(curr_lemma)))
+                    curr_sentence = []
+                    curr_pos = []
+                    curr_lemma = []
             else: 
                 
                 
@@ -57,7 +64,7 @@ class Sentences():
                 elif re.search(r"ENDNOTE\d+",token): 
                     # end of a note 
                     curr_in_note = False
-                
+
                 if idx < len(adorned) -1: 
                     next = adorned[idx+1].split("\t")
                     next_token, next_pos, next_lemma = next[0], next[2], next[4]
@@ -68,6 +75,18 @@ class Sentences():
                 update(token,pos,lemma)
 
                 if EOS == "1":
+                    if pos == "crd" and len(curr_sentence) == 1: 
+                        serm,page,para,c,d,e = sentences[-1]
+                        if curr_paragraph == para: 
+                            sentences[-1] = (serm,page,para,
+                                            c+ " " + " ".join(curr_sentence),
+                                            d + " " + " ".join(curr_pos),
+                                            e + " " + " ".join(curr_lemma))
+                            curr_sentence = []
+                            curr_pos = []
+                            curr_lemma = [] 
+                            continue
+                    
                     if pos != token: 
                         if next_pos == "crd" or len(curr_sentence) == 1: 
                             continue
@@ -87,6 +106,9 @@ class Sentences():
                             # current EOS token is a proper noun and the next word is foreign 
                             # (in the case of Latin quotations right after a person's name) 
                             continue
+                        elif re.search(r"etc",lemma): 
+                            # case of "By faith Noah warned of God moved with fear, STARTITALICS &c. ENDITALICS H*b. 11. 7."
+                            continue 
                         else: 
                             if re.search(r"ENDITALICS",next_token): 
                                 # case of a sentence boundary occuring within an italicized section 
@@ -94,18 +116,22 @@ class Sentences():
                                 update(next_token, next_pos, next_lemma)
                                 adorned[idx+1] = ""
                             
-                            if (re.search(r"^[a-z0-9]",curr_sentence[0]))and len(sentences) > 0: 
-                        
+                            if (re.search(r"^[a-z0-9\^\.]",curr_sentence[0]))and len(sentences) > 0: 
                                 serm,page,para,c,d,e = sentences[-1]
                                 if curr_paragraph == para: 
                                     sentences[-1] = (serm,page,para,
                                                     c+ " " + " ".join(curr_sentence),
                                                     d + " " + " ".join(curr_pos),
                                                     e + " " + " ".join(curr_lemma))
+                                else: 
+                                    sentences.append((curr_sermon, curr_page, curr_paragraph, 
+                                                    " ".join(curr_sentence),
+                                                    " ".join(curr_pos),
+                                                    " ".join(curr_lemma)))
                             
                             elif len(sentences) > 0:                    
                                 serm,page,para,c,d,e = sentences[-1]
-                                if curr_paragraph == para and "crd" in d.split(" ")[-1] or "crd" in d.split(' ')[-2]:
+                                if curr_paragraph == para and ((re.search(r"crd|\^[\.]*",d.split(" ")[-1]) and re.search(r"crd|\^[\.]*",d.split(" ")[-2])) or re.search(r"ENDITALICS",c.split(" ")[-1])):
                                     sentences[-1] = (serm,page,para,
                                                     c+ " " + " ".join(curr_sentence),
                                                     d + " " + " ".join(curr_pos),
@@ -123,42 +149,5 @@ class Sentences():
                             curr_sentence = []
                             curr_pos = []
                             curr_lemma = [] 
-            # if len(sentences)>25:
-            #     break
         self.sentences = sentences
-
-
-    def fix_illegible_and_get_notes(self): 
-        with open(f"../assets/plain/{self.tcpID}.txt","r") as file: 
-            plain = file.readlines()[0].split(" ")
-        illegible = []
-        for word in plain: 
-            illegible.extend(re.findall(r"^(\*[\w\*]+)",word))
-        illegible_dict = {word:None for word in illegible}
-        for s_idx, tuple in enumerate(self.sentences): 
-            sentence, pos, lemma = tuple[3:]
-            sentence, pos, lemma = sentence.split(" "), pos.split(" "), lemma.split(" ")
-            note_start = None
-            for idx, word in enumerate(sentence): 
-                if re.search(r"STARTNOTE\d+",word):
-                    note_start = idx
-                elif re.search(r'ENDNOTE\d+',word):
-                    self.notes_spans[s_idx].append((note_start,idx))
-                elif idx+1 < len(sentence): 
-                    if word == "*": 
-                        combined = word + sentence[idx+1]
-                        if combined in illegible_dict: 
-                            sentence[idx] = ""
-                            sentence[idx+1] = combined
-                            lemma[idx+1] = combined
-                            pos[idx] = ""
-                            lemma[idx] = ""
-            sentence = [_ for _ in sentence if len(_) > 0]
-            lemma = [_ for _ in lemma if len(_) > 0]
-            pos = [_ for _ in pos if len(_) > 0]
-            self.sentences[s_idx] = (tuple[0], tuple[1], tuple[2]," ".join(sentence), " ".join(pos), " ".join(lemma))
-
-                
-
-
 

@@ -10,6 +10,7 @@ Text = Sentences(tcpID)
 all_encodings = {}
 all_citations = {}
 all_sentences = {}
+# print(extract_citations("Mat. 24 Isa. 42.43 2 Tim. 3 Luke 17.18 Mat. 24. Rō. 1. Is. 1.3 5.59 4 Esd. 5, 6, 7 8, 9.14, 15, 16 Jer. 7.8.9.18 2 Tim. 4 Mat. 24 Mark 13 Zech. 13 Epist. Jude. 2 Pet. 2 Jer. 5.23 Eph. 4 Mark 13 1 Tim. 1.6"))
 for sent_idx, tuple in enumerate(Text.sentences):
 
     all_encodings[sent_idx] = []
@@ -25,6 +26,7 @@ for sent_idx, tuple in enumerate(Text.sentences):
             lemmatized.append(l[t])
         elif t-1 >= 0: 
             sentence[-1] = sentence[-1] + "."
+            pos[-1] = pos[-1] + "<EOS>" # indicates that the period at end of the word is a sentence boundary and its own token
             lemmatized[-1] = lemmatized[-1] + "."
     sent_str = " ".join(sentence)
 

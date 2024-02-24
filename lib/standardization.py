@@ -57,7 +57,7 @@ def clean_text(n):
 
 def clean_word(word): 
     word = word.lower()
-    word = re.sub(r"[^A-Za-z\*]","",word)
+    word = re.sub(r"[^A-Za-z\^]","",word)
     word = re.sub("v","u",word) # replace all v's with u's 
     word = re.sub(r"^i","j",word) # replace initial i's to j's 
     word = re.sub(r"(?<=\w)y(?=\w)","i",word) # replace y's that occur within words into i's
@@ -86,7 +86,7 @@ def convert_numeral(word):
         return orig_word 
 
 '''Standardize abbreviations'''
-num_to_text = {'1':'one','2':'two','3':'three'}
+num_to_text = {'1':'one','2':'two','3':'three','4':'four'}
 def replaceBook(text): 
     text = text.split(" ")
     replaced = []
@@ -109,7 +109,7 @@ def replaceBook(text):
                     # the case of "1, Kings"
                     prev = re.sub(r"([^\w\d\*\^])$","",text[idx-1]) # remove trailing punctuation
                     prev = convert_numeral(prev)
-                    if re.search(r'^[1-3\*{1}]\.{0,}$',prev):
+                    if re.search(r'^[1-4\^{1}]\.{0,}$',prev):
                         text[idx-1] = prev
                         orig = prev + " " + orig
                     elif re.search(r"^\d",text[idx]): 
@@ -127,7 +127,7 @@ def replaceBook(text):
             replaced.append(orig)
             text[idx] = word  
     text = " ".join(text)
-    numBooks = re.findall(r"([1-3\*{1}]) (samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john|esdras|maccabees)",text)
+    numBooks = re.findall(r"([1-4\^{1}]) (samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john|esdras|maccabees)",text)
 
     # case of a marginal note containing a single citation, e.g., "Sam. 15. 22."
     numBooks.extend(re.findall(r"^(samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john|esdras|maccabees)",text))
@@ -135,11 +135,11 @@ def replaceBook(text):
     for entry in numBooks: 
         if len(entry) == 1:
             book = entry[0]
-            text = re.sub(rf"\* {book}",f"unknown{book}",text)
+            text = re.sub(rf"\^ {book}",f"unknown{book}",text)
         else:
             book = entry[1]
-            if entry[0] == "*": 
-                text = re.sub(rf"\* {book}",f"unknown{book}",text)
+            if entry[0] == "^": 
+                text = re.sub(rf"\^ {book}",f"unknown{book}",text)
             elif f"{entry[0]} {book}" in numBook: 
                 text = re.sub(f"{entry[0]} {book}",f"{num_to_text[entry[0]]}{book}",text)
     return text, replaced
@@ -206,7 +206,7 @@ def decompose(phrase):
         phrase = re.sub('\,$| \,$','',phrase)
     
     # if the text is simply a single citation, call simple() to append the citation to the list of citations 
-    if re.search(r'^[0-9\*]+ [0-9\*\^]+$',phrase):  
+    if re.search(r'^[0-9\^]+ [0-9\*\^]+$',phrase):  
         citations.append(simple(book, phrase))
     # if there are ampersands in the text, split the text up by the ampersands 
     elif re.search('&',phrase): 
@@ -221,10 +221,10 @@ def decompose(phrase):
             elif re.search('\,',passage): 
                 citations.extend(comma(book,passage))
             # call othersimple() to account for the case of "<chapter> <line1> <line2>" 
-            elif re.search(r'[0-9*]+ [0-9*]+ [0-9*]+$', passage): 
+            elif re.search(r'[0-9\^]+ [0-9\^]+ [0-9\^]+$', passage): 
                 citations.extend(othersimple(book, passage))
             # call simple() to account for "<chapter> <line1>"
-            elif re.search(r'^[0-9*]+ [0-9*]+$',passage): 
+            elif re.search(r'^[0-9\^]+ [0-9\^]+$',passage): 
                 citations.append(simple(book, passage))
             else: 
                 outliers.append(passage)
@@ -241,7 +241,7 @@ def decompose(phrase):
     # else, there is a format that this code cannot account effectively for 
     else: 
         # special cases; see the othersimple function description for examples
-        if re.search(r'[0-9*]+ [0-9*]+ [0-9*]+$',phrase):  
+        if re.search(r'[0-9\^]+ [0-9\^]+ [0-9\^]+$',phrase):  
             citations.extend(othersimple(book, phrase))
         # # hard coding some special cases for the charity sermons dataset
         # elif '119 5 10 32 57 93 106 173 40' == phrase and book == 'psalms': 
@@ -275,9 +275,12 @@ def proper_title(citations_list):
         elif re.search('three',book):
             book = re.sub('three','',book)
             final_citations.append(f'3 {book.capitalize()} {citation[1]}')
+        elif re.search('four',book):
+            book = re.sub('four','',book)
+            final_citations.append(f'4 {book.capitalize()} {citation[1]}')
         elif re.search('unknown',book):
             book = re.sub('unknown','',book)
-            final_citations.append(f'* {book.capitalize()} {citation[1]}')
+            final_citations.append(f'^ {book.capitalize()} {citation[1]}')
         else: 
             final_citations.append(f'{book.capitalize()} {citation[1]}')
     return final_citations 
