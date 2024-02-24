@@ -9,9 +9,10 @@ def extract_citations(n):
     citations, outliers = {}, {}
     n = clean_text(n)
     n,replaced = replaceBook(n)
-    match = find_matches(n)
+    match = find_matches(n,replaced)
     text_str = n 
-    if len(match) > 0: 
+    fully_replaced = []
+    if len(match) > 0 and len(replaced) > 0: 
         for ref, item in enumerate(match):
             text_str = re.sub(re.escape(item), f"<REF{ref}>",text_str, 1)
             item = re.sub(r"([^0-9a-z*\^])$","",item) # remove trailing characters 
@@ -31,8 +32,8 @@ def extract_citations(n):
                 chapter = item[3]
                 verse = item[1]
                 item[1],item[2],item[3] = chapter,verse,"" 
-            
-            replaced[ref] = replaced[ref] + " " + " ".join(item[1:])
+
+            fully_replaced.append(replaced[ref][0] + " " + " ".join(item[1:]))
             
             item = " ".join(item)
             decomposed = decompose(item)
@@ -40,7 +41,7 @@ def extract_citations(n):
                 citations[ref] = decomposed[0]
             if len(decomposed[1]) > 0: 
                 outliers[ref] = decomposed[1]
-    return citations, outliers, text_str,replaced
+    return citations, outliers, text_str,fully_replaced
 
 def clean_text(n): 
     # remove everything that is not an alphabetical character, integer, comma, ampersand, hyphen, asterisk, period, apostrophe or a single space
@@ -124,7 +125,7 @@ def replaceBook(text):
                         word = f"{num_to_text[num]}{word}"
                     else: continue
                 else: continue
-            replaced.append(orig)
+            replaced.append((orig,text[idx+1]))
             text[idx] = word  
     text = " ".join(text)
     numBooks = re.findall(r"([1-4\^{1}]) (samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john|esdras|maccabees)",text)
@@ -144,13 +145,25 @@ def replaceBook(text):
                 text = re.sub(f"{entry[0]} {book}",f"{num_to_text[entry[0]]}{book}",text)
     return text, replaced
 
-def find_matches(text):
+def find_matches(text,replaced):
     text = text.split(" ")
     count = 0 
     matches = []
     current = []
+    if len(replaced) == 0: 
+        return []
     for idx, t in enumerate(text): 
         if t in abbrev or t in numBook_to_proper:
+            t = re.sub(r"one|two|three|four|\^","",t)
+            if len(matches) >= len(replaced): 
+                break
+            if t != abbrev_to_book[clean_word(replaced[len(matches)][0])]: 
+                continue
+            elif idx+1 >= len(text): 
+                continue
+            elif text[idx+1] != replaced[len(matches)][1]: 
+                continue
+
             if len(current) > 1 and re.search(r"[0-9\*\^]",current[1]): 
                 matches.append(" ".join(current))
                 count += 1 
@@ -168,7 +181,7 @@ def find_matches(text):
                     current = [t]
             else: 
                 current = [t]
-        elif len(current) > 0 and re.search(r"[0-9*\^\,\&\-\—]+", t): 
+        elif len(current) > 0 and re.search(r"[0-9\*\^\,\&\-\—]+", t): 
             if re.search(r"[A-Za-z]",t):
                 continue
             current.append(t)

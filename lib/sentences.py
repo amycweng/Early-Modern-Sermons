@@ -131,7 +131,14 @@ class Sentences():
                             
                             elif len(sentences) > 0:                    
                                 serm,page,para,c,d,e = sentences[-1]
-                                if curr_paragraph == para and ((re.search(r"crd|\^[\.]*",d.split(" ")[-1]) and re.search(r"crd|\^[\.]*",d.split(" ")[-2])) or re.search(r"ENDITALICS",c.split(" ")[-1])):
+                                end_with_two_crd, end_with_it = False, False
+                                if len(d.split(" ")) >= 2: 
+                                    if re.search(r"crd|\^[\.]*",d.split(" ")[-1]) and re.search(r"crd|\^[\.]*",d.split(" ")[-2]):
+                                        end_with_two_crd = True
+                                if len(c.split(" ")) > 1: 
+                                    if re.search(r"ENDITALICS",c.split(" ")[-1]): 
+                                        end_with_it = True
+                                if curr_paragraph == para and (end_with_two_crd or end_with_it):
                                     sentences[-1] = (serm,page,para,
                                                     c+ " " + " ".join(curr_sentence),
                                                     d + " " + " ".join(curr_pos),
