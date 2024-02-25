@@ -7,16 +7,18 @@ def adorn(group):
 # adorn('A41135')
 
 # adorn('A0')
+adorn('A10')
+adorn('A20')
 # for n in range(1,9): 
 #     adorn(f'A1{n}')
 
-adorn(f"A19")
-for n in range(1,9+1): 
-    adorn(f'A2{n}')
+# adorn(f"A19")
+# for n in range(1,9+1): 
+#     adorn(f'A2{n}')
 
-for n in range(3,9+1): 
-    adorn(f'A{n}')
-adorn('B')
+# for n in range(3,9+1): 
+#     adorn(f'A{n}')
+# adorn('B')
 # Notes: 
 # My custom delimiters and placeholders: SERMON{#}, STARTNOTE{#}, ENDNOTE{#}, PAGE{#}, PARAGRAPH{#}, NONLATINALPHABET  
 

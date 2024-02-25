@@ -18,7 +18,8 @@ def encode(tcpID):
     all_citations = {}
     all_sentences = {}
     for sent_idx, tuple in enumerate(Text.sentences):
-
+        if sent_idx != 1347: continue
+        # print(sent_idx)
         all_encodings[sent_idx] = []
         sermon_idx, start_page, paragraph, s, p, l = tuple 
         all_sentences[sent_idx] = (sermon_idx, start_page, paragraph)
@@ -44,8 +45,7 @@ def encode(tcpID):
          # encode with citation information 
         sent_str = re.sub(r"STARTITALICS|ENDITALICS|STARTNOTE\d+|ENDNOTE\d+","",sent_str)
         citations, outliers, sent_str, replaced = extract_citations(sent_str) # from original
-        if len(citations) > 0 or len(outliers) > 0:
-            all_citations[sent_idx] = (citations, outliers)
+        
         t = -1  
         for token in sentence: 
             if token == ".": continue 
@@ -100,50 +100,88 @@ def encode(tcpID):
         if len(citations) > 0:  
             sent = sent_str.split(" ")
             following = {}
+            books = {}
+            # print(sent_str)
+            # print(citations)
             for i, word in enumerate(sent):
                 if re.search(r"\<REF\d+\>",word): 
                     ref_idx = int(re.findall(r'\d+',word)[0])
                     if i+1 < len(sent): 
-                        following[ref_idx] = sent[i+1]
+                        next_elt = sent[i+1]
+                        if re.search(r"\<REF\d+\>",next_elt): 
+                            next_elt = replaced[ref_idx+1].split(" ")[0]
+                        following[ref_idx] = next_elt
+                        citation = citations[ref_idx][0]
+                        elt = replaced[ref_idx].split(" ")
+                        if re.search(r"\d|\^",citation[0]): 
+                            book = elt[1]
+                            numbered_book = True 
+                        else: 
+                            book = elt[0]
+                            numbered_book = False
+                        books[ref_idx] = (book, numbered_book)
                     else: 
+                        books[ref_idx] = (book, numbered_book)
                         following[ref_idx] = None
             r_idx = 0
-            # print(following,citations)
-            
-            def get_book(rep):
-                rep = rep.split(" ")
-                numbered_book = False 
-                if re.search("1|2|3", rep[0]):
-                    book = rep[1]
-                    numbered_book = True
-                else: 
-                    book = rep[0]
-                return book, numbered_book 
-            
-            book, numbered_book = get_book(replaced[r_idx])
+            # print(sent_idx,following,citations,replaced,sent_str)
             new_encoding = []
             in_citation = False 
+            book, numbered_book = books[r_idx]
             if r_idx+1 < len(replaced): 
-                next_book, next_numbered = get_book(replaced[r_idx+1])
+                next_book, next_numbered = books[r_idx+1]
             else: 
                 next_book, next_numbered = "", False
 
+            # print(books)
             for idx, item in enumerate(encoded):
                 if len(item) == 0: continue
                 token,b,c,d,e = item[:-1]
                 word = re.sub(r"\.", "",token)
-
+                
                 if word == book and idx + 1 < len(encoded):  
                     next_t, next_p, next_l, d, e = encoded[idx+1][:-1]
-                    if next_p == next_l or next_p == "crd" or re.search(r"\b[cC]\b|\b[lL]\b|\b[vV]\b|\b[vV]erse\b|\b[vV]ers\b|\b[vV]er\b|\b[cC]ap\b|\b[Cc]hap\b|\b[cC]hapter\b",next_t): 
-                        if numbered_book: 
+                    if re.search(r'^[0-9\*\^\.]+$',convert_numeral(next_t)) or re.search(r"\b[cC]\b|\b[lL]\b|\b[vV]\b|\b[vV]erse\b|\b[vV]ers\b|\b[vV]er\b|\b[cC]ap\b|\b[Cc]hap\b|\b[cC]hapter\b",next_t): 
+                        # print(word, next_t, r_idx, books)
+                        if len(new_encoding) > 0: 
                             prev_t, prev_p, prev_l, d, e, f = new_encoding[-1]
-                            new_encoding[-1] = (prev_t, prev_p, prev_l, d, e, "B-REF")
-                            tag = "I-REF"
+
+                            if numbered_book: 
+                                if prev_t == "of" and len(new_encoding) > 1: 
+                                    first_t, first_p, first_l, dd, ee,ff = new_encoding[-2]
+                                    new_encoding[-2] = (first_t, first_p, first_l, dd,ee,"B-REF")
+                                    new_encoding[-1] = (prev_t, prev_p, prev_l, d, e, "I-REF")
+                                else: 
+                                    new_encoding[-1] = (prev_t, prev_p, prev_l, d, e, "B-REF")
+                                tag = "I-REF"
+                            
+                            elif re.search(r'^[0-9\*\^]+$', convert_numeral(prev_t)): 
+                                if len(new_encoding) > 1:
+                                    first_t, first_p, first_l, dd, ee,ff = new_encoding[-2]
+                                    if re.search(r"^[Vv]er[.se]*$|^[Vv][.]*$",first_t):
+                                        if len(citations[r_idx]) == 1:
+                                            c = citations[r_idx][0].split(" ") 
+                                            nums = c[-1].split(".")
+                                            versenum = re.sub(r"[^0-9\^\*]+","",prev_t)
+                                            if len(c[0]) == 1 and len(nums) == 1:
+                                                citations[r_idx] = [f"{c[0]} {c[1]} {nums[0]}.{versenum}"]
+                                            else: 
+                                                citations[r_idx] = [f"{c[0]} {nums[0]}.{versenum}"]
+                                    
+                                else: 
+                                    new_encoding[-1] = (prev_t, prev_p, prev_l, d, e, "B-REF")
+                                tag = "I-REF"
+                            else: 
+                                tag = "B-REF"
+                            
+                            if f != "O-REF": 
+                                r_idx += 1
                         else: 
                             tag = "B-REF"
+
                         new_encoding.append((token,b,c,d,e,tag))
                         in_citation = True
+                    
                     elif idx+2 < len(encoded): 
                         next_next_t = encoded[idx+1][0]
                         if next_t == "of" and re.search(r"\bSol\b|\bSolomon\b",next_next_t):
@@ -153,13 +191,13 @@ def encode(tcpID):
                         new_encoding.append((token,b,c,d,e,"O-REF"))
                 
                 elif in_citation and word != following[r_idx]: 
+                    # print("here",word,following[r_idx],next_book,r_idx)
                     if token == " ": 
                         token = c
-                        
                     if len(word) > 0 and word == next_book and idx + 1 < len(encoded):
                         r_idx += 1 
                         next_t, next_p, next_l, d, e = encoded[idx+1][:-1]
-                        if next_p == next_l or next_p == "crd": 
+                        if next_p == next_l or re.search(r'^[0-9\*\^\.]+$',convert_numeral(next_t)): 
                             if next_numbered: 
                                 prev_t, prev_p, prev_l, d, e, f = new_encoding[-1]
                                 new_encoding[-1] = (prev_t, prev_p, prev_l, d, e, "B-REF")
@@ -173,7 +211,7 @@ def encode(tcpID):
                         
                         book, numbered_book = next_book, next_numbered
                         if r_idx+1 < len(replaced): 
-                            next_book, next_numbered = get_book(replaced[r_idx+1])
+                            next_book, next_numbered = books[r_idx+1]
                         else: 
                             next_book, next_numbered = "", False
                         in_citation = False
@@ -186,9 +224,9 @@ def encode(tcpID):
                         in_citation = False
                         r_idx += 1 
                         if r_idx < len(replaced): 
-                            book, numbered_book = get_book(replaced[r_idx])
+                            book, numbered_book = books[r_idx]
                             if r_idx+1 < len(replaced): 
-                                next_book, next_numbered = get_book(replaced[r_idx+1])
+                                next_book, next_numbered = books[r_idx+1]
                             else: 
                                 next_book, next_numbered = "", False
             
@@ -199,16 +237,19 @@ def encode(tcpID):
             for e_id, encoding in enumerate(encoded):
                 a,b,c,d,e,f = encoding 
                 all_encodings[sent_idx].append((e_id, a,b,c,d,e,f))
+        
+        if len(citations) > 0 or len(outliers) > 0:
+            all_citations[sent_idx] = (citations, outliers)
 
     output = (all_encodings, all_citations, all_sentences)
     with open(f"../assets/encoded/{tcpID}.json","w+") as file: 
         json.dump(output, file)
 
-# if __name__ == "__main__": 
-#     sermon_group = input("Enter the beginning characters of a tcpID category: ")
-#     tcpIDs = get_ids(sermon_group)
-#     for tcpID in tcpIDs: 
-#         print(tcpID)
-#         encode(tcpID)
+if __name__ == "__main__": 
+    sermon_group = input("Enter the beginning characters of a tcpID category: ")
+    tcpIDs = get_ids(sermon_group)
+    for tcpID in tcpIDs: 
+        print(tcpID)
+        encode(tcpID)
 
-encode("B00819")
+# print(extract_citations("5 psalms 115"))

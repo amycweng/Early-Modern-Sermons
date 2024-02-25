@@ -71,11 +71,29 @@ class Sentences():
                 else: 
                     next_token, next_pos, next_lemma = "","",""
                     
-
-                update(token,pos,lemma)
+                # case of Israell2 Sam. 16.22 in A04389
+                if re.search(r"[\w\,\.]+\d+$",token): 
+                    num = re.findall(r"\d+$",token)[0]
+                    token = token.split(num)[0]
+                    update(token,pos,token)
+                    update(num,"crd",num)
+                    continue
+                elif re.search(r"[A-Z]",token[1:]) and re.search(r"[a-z]",token[1:]): 
+                    # capital in the middle of a word, .e.,g fireMat 3.10 in A04389
+                    words = [token[0]]
+                    for char in token[1:]:
+                        if char.isupper():
+                            words.append(' ')
+                        words.append(char)
+                    words = ''.join(words)
+                    words = words.split(" ")
+                    for word in words: 
+                        update(word, "", lemma)
+                else: 
+                    update(token,pos,lemma)
 
                 if EOS == "1":
-                    if pos == "crd" and len(curr_sentence) == 1: 
+                    if pos == "crd" and len(curr_sentence) == 1 and len(sentences) > 0: 
                         serm,page,para,c,d,e = sentences[-1]
                         if curr_paragraph == para: 
                             sentences[-1] = (serm,page,para,
@@ -88,7 +106,7 @@ class Sentences():
                             continue
                     
                     if pos != token: 
-                        if next_pos == "crd" or len(curr_sentence) == 1: 
+                        if next_pos == "crd" or len(curr_sentence) == 1 or len(token.strip("."))==1: 
                             continue
 
                     if re.search(r"ENDNOTE\d+",next_token): 
@@ -131,14 +149,16 @@ class Sentences():
                             
                             elif len(sentences) > 0:                    
                                 serm,page,para,c,d,e = sentences[-1]
-                                end_with_two_crd, end_with_it = False, False
+                                end_with_crd, end_with_it, end_with_single = False, False, False
                                 if len(d.split(" ")) >= 2: 
-                                    if re.search(r"crd|\^[\.]*",d.split(" ")[-1]) and re.search(r"crd|\^[\.]*",d.split(" ")[-2]):
-                                        end_with_two_crd = True
+                                    if re.search(r"crd|\^[\.]*",d.split(" ")[-1]) or re.search(r"crd|\^[\.]*",d.split(" ")[-2]):
+                                        end_with_crd = True
+                                    if len(c.split(" ")[-2].strip(".")) == 1: 
+                                        end_with_single = True
                                 if len(c.split(" ")) > 1: 
                                     if re.search(r"ENDITALICS",c.split(" ")[-1]): 
                                         end_with_it = True
-                                if curr_paragraph == para and (end_with_two_crd or end_with_it):
+                                if curr_paragraph == para and (end_with_crd or end_with_it or end_with_single):
                                     sentences[-1] = (serm,page,para,
                                                     c+ " " + " ".join(curr_sentence),
                                                     d + " " + " ".join(curr_pos),

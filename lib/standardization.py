@@ -7,40 +7,52 @@ numBook_to_proper = {v:k for k,v in numBook.items()}
 
 def extract_citations(n):
     citations, outliers = {}, {}
+    # print(n)
     n = clean_text(n)
     n,replaced = replaceBook(n)
     match = find_matches(n,replaced)
     text_str = n 
     fully_replaced = []
+    # print(match,replaced,text_str)
+    count = 0 
     if len(match) > 0 and len(replaced) > 0: 
-        for ref, item in enumerate(match):
-            text_str = re.sub(re.escape(item), f"<REF{ref}>",text_str, 1)
-            item = re.sub(r"([^0-9a-z*\^])$","",item) # remove trailing characters 
+        for item, ref in match:
+            if len(item.split(" ")) == 2 and item.split(" ")[1] == ",": continue
+            text_str = re.sub(re.escape(item), f"<REF{count}>",text_str, 1)
+            count += 1 
+            item = re.sub(r"([^0-9a-z\*\^])+$","",item) # remove trailing characters 
             item = item.split(" ")
+            if item[1] == "," and len(item) > 2: 
+                # case of Ecclus, 25.16 in A09053
+                book, nums = item[0], item[2:]
+                item = [book]
+                for num in nums: item.append(num) 
+            item = [convert_numeral(w) for w in item]
+            item = format_chapter(item)
+
             if not re.search(r"[0-9\*\^]",item[1]): 
                 continue
-            # accounting for case where the chapter number precedes the book's name 
-            if re.search(r"\d+", item[0]):
-                chapter = item[0]
-                item[0] = item[1] # book 
-                item[1] = chapter 
-            # case of <book> ch <num> <num>  
-            if re.search(r'^ch$',item[1]):
-                item[1] = ""
-            elif len(item) > 2 and re.search(r'^ch$',item[2]):
-                # case of '1 K. 19. ch. 18.  
-                chapter = item[3]
-                verse = item[1]
-                item[1],item[2],item[3] = chapter,verse,"" 
 
+            if len(item) > 2 and re.search(r'^ch$',item[2]):
+                # case of '1 K. 19. ch. 18.
+                if len(item) < 4:
+                    item = item[:3]
+                else: 
+                    chapter = item[3]
+                    verse = item[1]
+                    item[1],item[2],item[3] = chapter,verse,"" 
+            # print(ref)
+            # print(replaced[ref])
+            # print(item)  
             fully_replaced.append(replaced[ref][0] + " " + " ".join(item[1:]))
             
             item = " ".join(item)
             decomposed = decompose(item)
+            # print(decomposed)
             if len(decomposed[0]) > 0: 
-                citations[ref] = decomposed[0]
+                citations[count-1] = decomposed[0]
             if len(decomposed[1]) > 0: 
-                outliers[ref] = decomposed[1]
+                outliers[count-1] = decomposed[1]
     return citations, outliers, text_str,fully_replaced
 
 def clean_text(n): 
@@ -49,9 +61,12 @@ def clean_text(n):
     # strip out periods and colons 
     n = re.sub(r"\.|\:", " ",n)
     # strip away letters indicating verse or chapter, as well as the phrase 'of Sol' which follows 'Song' or 'Wisdom'
-    n = re.sub(r"\b[cC]\b|\b[lL]\b|\b[vV]\b|\b[vV]erse\b|\b[vV]ers\b|\b[vV]er\b|\b[cC]ap\b|\b[Cc]hap\b|\b[cC]hapter\b|\bof Sol\b|\bof Solomon\b","",n)
+    n = re.sub(r"\b[vV]erse\b|\b[vV]ers\b|\b[vV]er\b|\b[cC]ap\b|\b[Cc]hap\b|\b[cC]hapter\b|\bof\b|\bSol\b|\bSolomon\b"," ",n)
+    if re.search(r"[\w+]\b[vcl]\b[\w+]",n): # not surrounded by numbers; less likely it means verse and more that it is a roman numeral
+        n = re.sub(r"\b[vcl]\b"," ",n)
+    
     # normalize conjunctions 
-    n = re.sub(r"\band\b|\bet\b",' & ', n)
+    n = re.sub(r"\band\b|\bet\b|\b\&\b",' & ', n)
     # replace all instances of multiple white spaces with a single space. 
     n = re.sub(r'\s+',' ',n)
     return n 
@@ -94,9 +109,23 @@ def replaceBook(text):
     for idx, word in enumerate(text): 
         if idx+1 in range(len(text)): # must be followed by at least one number 
             follow = convert_numeral(re.sub(r"([^\w\d\*\^])$","",text[idx+1])) # remove trailing punctuation
-            if not re.match(r'^[0-9\*\^]+$',follow): 
-                continue 
-       
+            if idx + 2 < len(text):
+                follow2 = convert_numeral(re.sub(r"([^\w\d\*\^])$","",text[idx+2]))
+                if not re.match(r'^[0-9\*\^]+$',follow):
+                    if not (text[idx+1] == "," and re.match(r'^[0-9\*\^]+$',follow2)):
+                        continue
+            elif not re.match(r'^[0-9\*\^]+$',follow): 
+                continue  
+
+        # elif idx > 0: # or preceded by at least one number 
+        #     preceding = convert_numeral(re.sub(r"([^\w\d\*\^])$","",text[idx-1]))
+        #     if not re.match(r'^[0-9\*\^]+$',preceding): 
+        #         continue 
+        else: 
+            continue
+        
+        if re.search(r"^is$|^ch$|^de$|^the$|^'tis$",word): continue # without capitalization and a period 
+
         word = clean_word(text[idx])
         # identififed a valid abbreviation         
         if word in abbrev_to_book:
@@ -104,74 +133,113 @@ def replaceBook(text):
             # update term to the normalized version 
             word = abbrev_to_book[word]
             orig = text[idx]
-            if re.search('samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|esdras|maccabees',word): 
-                # do not convert 'ch' or 'the' if it is not preceded and succeeded by a number or an asterisk 
+            if re.search('samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|esdras|maccabees|john',word): 
+                # do not convert 'ch' or 'the' if it is not preceded and succeeded by a number or caret 
                 if idx > 0: 
                     # the case of "1, Kings"
                     prev = re.sub(r"([^\w\d\*\^])$","",text[idx-1]) # remove trailing punctuation
                     prev = convert_numeral(prev)
                     if re.search(r'^[1-4\^{1}]\.{0,}$',prev):
-                        text[idx-1] = prev
-                        orig = prev + " " + orig
+                        if idx-2 >= 0:
+                            if text[idx-2] not in abbrev: 
+                                text[idx-1] = prev
+                                orig = text[idx-1] + " " + orig                               
+                        else: 
+                            text[idx-1] = prev
+                            orig = text[idx-1] + " " + orig
                     elif re.search(r"^\d",text[idx]): 
+                        # case of 2Cor 
                         num = re.findall(r"^\d",text[idx])[0]
                         if f"{num} {word}" in numBook: 
                             word = f"{num_to_text[num]}{word}"
                         else: continue
-                    else: continue
+                    elif re.search(r"^[cC]h$|^[Tt]he$",orig): 
+                        continue
+                    
                 elif re.search(r"^\d",text[idx]): 
                     num = re.findall(r"^\d",text[idx])[0]
                     if f"{num} {word}" in numBook: 
                         word = f"{num_to_text[num]}{word}"
                     else: continue
-                else: continue
+                elif re.search(r"^[cC]h$|^[Tt]he$",orig): 
+                    continue
+                
             replaced.append((orig,text[idx+1]))
             text[idx] = word  
     text = " ".join(text)
-    numBooks = re.findall(r"([1-4\^{1}]) (samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john|esdras|maccabees)",text)
-
-    # case of a marginal note containing a single citation, e.g., "Sam. 15. 22."
-    numBooks.extend(re.findall(r"^(samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john|esdras|maccabees)",text))
+    numBooks = re.findall(r"(.*?) ([1-4\^{1}]) (samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john|esdras|maccabees)",text)
+    numBooks.extend(re.findall(r"^([1-4\^{1}]) (samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|john|esdras|maccabees)",text))
     # convert all numbered books into a single token ("1 corinthians" --> "onecorinthians")
     for entry in numBooks: 
-        if len(entry) == 1:
-            book = entry[0]
-            text = re.sub(rf"\^ {book}",f"unknown{book}",text)
-        else:
-            book = entry[1]
-            if entry[0] == "^": 
-                text = re.sub(rf"\^ {book}",f"unknown{book}",text)
-            elif f"{entry[0]} {book}" in numBook: 
-                text = re.sub(f"{entry[0]} {book}",f"{num_to_text[entry[0]]}{book}",text)
+        # deal with John 3 John 3 case
+        if len(entry) == 3:  
+            if entry[0].split(" ")[-1] in abbrev: 
+                continue
+            else: 
+                book,num = entry[2], entry[1]
+        else: 
+            book, num = entry[1], entry[0]
+        if num == "^":
+            text = re.sub(rf"^\^ {book}| \^ {book}",f" unknown{book}",text)
+        elif f"{num} {book}" in numBook: 
+            text = re.sub(rf"\b{num} {book}|^{num} {book}",f" {num_to_text[num]}{book}",text)
+    text = re.sub(r"\s+"," ",text)
     return text, replaced
+
+def format_chapter(item):
+    # accounting for case where the chapter number precedes the book's name
+    if len(item) < 2: return item  
+    if re.search(r"\d+", item[0]):
+        chapter = item[0]
+        item[0] = item[1] # book 
+        item[1] = chapter 
+    # case of <book> ch <num> <num>  
+    if re.search(r'^ch$',item[1]):
+        item[1] = ""
+    return item
 
 def find_matches(text,replaced):
     text = text.split(" ")
-    count = 0 
     matches = []
     current = []
     if len(replaced) == 0: 
         return []
+    r_idx = 0
     for idx, t in enumerate(text): 
+        if r_idx >= len(replaced): break
+        check_crd_t = convert_numeral(t)
         if t in abbrev or t in numBook_to_proper:
-            t = re.sub(r"one|two|three|four|\^","",t)
+            adjacent_citation = False
+            if len(current) > 1 and re.search(r"[0-9\*\^\,]",convert_numeral(format_chapter(current.copy())[1])):
+                # print("added here",current)
+                matches.append((" ".join(current),r_idx))
+                r_idx += 1 
+                current = []
+                adjacent_citation = True 
+            
+            if r_idx >= len(replaced): break
+            
+            abbrev_t = re.sub(r"one|two|three|four|unknown","",t)
             if len(matches) >= len(replaced): 
                 break
-            if t != abbrev_to_book[clean_word(replaced[len(matches)][0])]: 
+            rep = clean_word(replaced[r_idx][0])
+            if rep[0] == "^": rep = "".join(rep[1:])
+            if rep not in abbrev_to_book: 
+                continue
+            if abbrev_t != abbrev_to_book[rep]:
                 continue
             elif idx+1 >= len(text): 
                 continue
-            elif text[idx+1] != replaced[len(matches)][1]: 
+            elif text[idx+1] != replaced[r_idx][1]: 
+                r_idx += 1 
                 continue
 
-            if len(current) > 1 and re.search(r"[0-9\*\^]",current[1]): 
-                matches.append(" ".join(current))
-                count += 1 
             if idx > 0 and t not in numBook_to_proper and len(current) == 0:
-                if re.search(r"^[0-9*\^]+$", text[idx-1]): 
+                if re.search(r"^[0-9]+$", text[idx-1]) and not adjacent_citation: 
                     # check the next two numbers 
                     if (idx+1) < len(text) and (idx+2) < len(text):
-                        if re.search(r"^[0-9]+$", text[idx+1]) and re.search(r"^[0-9]+$", text[idx+2]): 
+                        t1,t2 = convert_numeral(text[idx+1]), convert_numeral(text[idx+2])
+                        if re.search(r"^[0-9]+$", t1) and re.search(r"^[0-9]+$", t2): 
                             current = [t]
                         else: 
                             current = [text[idx-1], t] 
@@ -181,21 +249,24 @@ def find_matches(text,replaced):
                     current = [t]
             else: 
                 current = [t]
-        elif len(current) > 0 and re.search(r"[0-9\*\^\,\&\-\—]+", t): 
-            if re.search(r"[A-Za-z]",t):
-                continue
+        
+        elif len(current) > 0 and re.search(r"^[0-9\*\^\,\&\-\—]+$", check_crd_t): 
+            # starts with a numeral, illegible character/word, or is punctuation 
+            # print("a",t,current)
             current.append(t)
         elif len(current)>0 and re.search(r'^ch$',t): 
+            # print("b",t)
             current.append(t)
-        elif len(current) > 1 and re.search(r"[0-9\*\^]",current[1]):
+        elif len(current) > 1 and re.search(r"[0-9\*\^\,]",convert_numeral(format_chapter(current.copy())[1])):
             # have reached the end of a relevant citation  
-            matches.append(" ".join(current))
-            count += 1 
+            matches.append((" ".join(current),r_idx))
+            r_idx += 1 
+            # print("added there",t)
             current = []
 
-    if len(current) > 1 and re.search(r"[0-9\*\^]",current[1]):
+    if len(current) > 1 and re.search(r"[0-9\*\^\,]",convert_numeral(format_chapter(current.copy())[1])):
         # have reached the end of a relevant citation  
-        matches.append(" ".join(current))
+        matches.append((" ".join(current),r_idx))
 
     return matches
         
@@ -205,13 +276,15 @@ def decompose(phrase):
     # initialize lists to keep track of the properly formatted citations and possible formats that this code cannot currently account for 
     citations, outliers = [], []
     # only a chapter-level citation
+    phrase = phrase.strip(" ")
     if re.search(r'^[a-z]+ [0-9\*\^]+$',phrase):
         citations.append(phrase.strip())
         citations = proper_title(citations)
         return citations, outliers 
-
+    
     phrase = phrase.split(" ")
     book = phrase[0]
+    
     phrase = " ".join(phrase[1:]).strip()
     if re.search('—|\,|\,$',phrase): 
         phrase = re.sub('—','-',phrase)
@@ -219,42 +292,45 @@ def decompose(phrase):
         phrase = re.sub('\,$| \,$','',phrase)
     
     # if the text is simply a single citation, call simple() to append the citation to the list of citations 
-    if re.search(r'^[0-9\^]+ [0-9\*\^]+$',phrase):  
+    if re.search(r'^[0-9\^\*]+ [0-9\*\^]+$',phrase):  
         citations.append(simple(book, phrase))
     # if there are ampersands in the text, split the text up by the ampersands 
     elif re.search('&',phrase): 
-        passages = phrase.split('&')
+        passages = phrase.split(' & ')
         for passage in passages:
             passage = passage.strip()
             if re.search('\-', passage):
                 c, o = hyphen(book,passage)
                 citations.extend(c)
                 outliers.extend([f'{book} {item}' for item in o])
-                # if len(o): print(orig_phrase)
+                # if len(o): # # print(orig_phrase)
             elif re.search('\,',passage): 
                 citations.extend(comma(book,passage))
             # call othersimple() to account for the case of "<chapter> <line1> <line2>" 
-            elif re.search(r'[0-9\^]+ [0-9\^]+ [0-9\^]+$', passage): 
+            elif re.search(r'[0-9\^\*]+ [0-9\^\*]+ [0-9\^\*]+$', passage): 
                 citations.extend(othersimple(book, passage))
             # call simple() to account for "<chapter> <line1>"
-            elif re.search(r'^[0-9\^]+ [0-9\^]+$',passage): 
+            elif re.search(r'^[0-9\^\*]+ [0-9\^\*]+$',passage): 
                 citations.append(simple(book, passage))
-            else: 
-                outliers.append(passage)
+            elif len(passage.split(" ")) == 1:
+                # deal with the John 8 & 1 or Psalms 33 & 35 & 45 case 
+                citations.append(f"{book} {passage}")
+            else:  
+                outliers.append(f"{book}: {passage}")
     
     # if there are no ampersands but there are hyphens
     elif re.search('-', phrase):
         c, o = hyphen(book,phrase)
         citations.extend(c)
         outliers.extend([f'{item}' for item in o])
-        # if len(o): print(orig_phrase)
+        # if len(o): # # print(orig_phrase)
     # if there are no ampersands & hyphens but there are commas  
     elif re.search(',',phrase): 
         citations.extend(comma(book, phrase))
     # else, there is a format that this code cannot account effectively for 
     else: 
         # special cases; see the othersimple function description for examples
-        if re.search(r'[0-9\^]+ [0-9\^]+ [0-9\^]+$',phrase):  
+        if re.search(r'[0-9\^\*]+ [0-9\^\*]+ [0-9\^\*]+$',phrase):  
             citations.extend(othersimple(book, phrase))
         # # hard coding some special cases for the charity sermons dataset
         # elif '119 5 10 32 57 93 106 173 40' == phrase and book == 'psalms': 
@@ -265,7 +341,7 @@ def decompose(phrase):
         #     citations.extend(['romans 8:1','romans 8:2', 'romans 8:3', 'romans 5:8', 'romans 5:9'])
         else: 
             outliers.append(f'{book} {phrase}')
-            # print(orig_phrase)
+            # # # print(orig_phrase)
     # pretty formatting 
     citations = proper_title(citations)
     # return both citations and outliers  
