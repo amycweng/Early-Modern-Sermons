@@ -13,6 +13,9 @@ def comma(book, passage):
     passage = re.sub(rf'{book}| ,','',passage).strip()
     nums = passage.split(' ')
     chapter = nums[0]
+    if len(nums) == 2: 
+        # Hosea 2,3 case 
+        return [f'{book} {nums[0]}', f'{book} {nums[1]}']
     for num in nums[1:]: 
         if ',' in num or num == nums[-1] or num == "^": 
             verse = num.strip('\,') 
@@ -39,18 +42,18 @@ Target format is "<book> <chapter> <verse1> <verse2>" or "<book> <chapter1> <ver
 '''
 def othersimple(book, passage): 
     phrases = []
-    if re.search('[0-9\^\*]+ [0-9\^\*]+ [0-9\^\*]+ [0-9\^\*]+ [0-9\^\*]+', passage): 
+    if re.search(r'[0-9\^\*]+ [0-9\^\*]+ [0-9\^\*]+ [0-9\^\*]+ [0-9\^\*]+', passage): 
         passage = re.findall('([0-9\^\*]+) ([0-9\^\*]+) ([0-9\^\*]+) ([0-9\^\*]+) ([0-9\^\*]+)',passage)[0]
         phrases.append(f'{book} {passage[0]}.{passage[1]}')
         phrases.append(f'{book} {passage[0]}.{passage[2]}')
         phrases.append(f'{book} {passage[0]}.{passage[3]}')
         phrases.append(f'{book} {passage[0]}.{passage[4]}')
-    elif re.search('[0-9\^\*]+ [0-9\^\*]+ [0-9\^\*]+ [0-9\^\*]+', passage): 
+    elif re.search(r'[0-9\^\*]+ [0-9\^\*]+ [0-9\^\*]+ [0-9\^\*]+', passage): 
         passage = re.findall('([0-9\^\*]+) ([0-9\^\*]+) ([0-9\^\*]+) ([0-9\^\*]+)',passage)[0]
         phrases.append(f'{book} {passage[0]}.{passage[1]}')
         phrases.append(f'{book} {passage[2]}.{passage[3]}')
     else: 
-        passage = re.findall('([0-9\^\*]+) ([0-9\^\*]+) ([0-9\^\*]+)',passage)[0]
+        passage = re.findall(r'([0-9\^\*]+) ([0-9\^\*]+) ([0-9\^\*]+)',passage)[0]
         phrases.append(f'{book} {passage[0]}.{passage[1]}')
         phrases.append(f'{book} {passage[0]}.{passage[2]}')
     return phrases 
@@ -62,9 +65,15 @@ e.g, "Genesis 3 9-14" --> "Genesis 3.9", "Genesis 3.10", etc. until "Genesis 3.1
 def continuous(book, phrase):
     phrases = [] 
     nums = re.findall(r'[0-9\^\*]+',phrase)
-    chapter, start, end = nums[0], int(nums[1]), int(nums[2])
+    chapter, start, end = nums[0],nums[1],nums[2]
+    if len(end) < len(start): 
+        # cases of 18-9
+        end = "".join(start[:len(start)-len(end)]) + end
+    start, end = int(start), int(end)
     for idx in range(end-start+1): 
         phrases.append(f'{book} {chapter}.{start+idx}')
+    if len(phrases) == 0: # case of ezekiel 36 27 - I 
+        phrases.append(f"{book} {chapter}.{start}")
     return phrases
 
 '''
@@ -72,33 +81,44 @@ These are cases in which hyphens divide discrete citations,
 e.g., "Acts 5 12, 14 -8 6 -9 35, 42" --> "Acts 5.12", "Acts 5.14", "Acts 8.6", "Acts 9.35" and "Acts 9.42" 
 '''
 def hyphen(book,passage): 
+    # print(book,passage)
     citations, outliers = [], []
     passage = re.sub(r'\s{0,}-\s{0,}','-',passage)
     passage = passage.strip().strip('-')
     if len(re.findall(r'[0-9\^\*]+',passage)) == 3:
-        # case of 'revelation 1, 13-16' or 'proverbs 8 18,-21' 
+        # case of 'revelation 1, 13-16' or 'proverbs 8 18 , -21' or 'luke 11-31 , 32" 
         # strip the commas out 
         passage = re.sub(",","",passage)
-    if re.search('[0-9\^\*]+-[0-9\^\*]+-[0-9\^\*]+',passage) or re.search('[0-9\^\*]+ [0-9\^\*]+ [0-9\^\*]+-[0-9\^\*]+',passage): 
+        passage = re.sub(r"\s+"," ",passage)
+
+    if re.search(r'[0-9\^\*]+-[0-9\^\*]+-[0-9\^\*]+',passage) or re.search(r'[0-9\^\*]+ [0-9\^\*]+ [0-9\^\*]+-[0-9\^\*]+',passage): 
         # cases like psalms 2 4-4 4-4 9-5 19-6 14-13 14-22-29 in A85487 
         # and 'john 5 24 3-18'
         # which is just too difficult to interpret
+        citations.append(f"{book} {passage.split(' ')[0]}")
         outliers.append(f'{book} {passage.strip()}')
         return citations, outliers 
-    if re.search('^[0-9\^\*]+ [0-9\^\*]+, [0-9]+-[0-9]+$|^[0-9\^\*]+ [0-9\^\*]+, [0-9\^\*]+, [0-9]+-[0-9]+$',passage): 
-        nums = re.findall('[0-9\^\*]+',passage)
+    if re.search(r'^[0-9\^\*]+ [0-9\^\*]+, [0-9]+\-[0-9]+$|^[0-9\^\*]+ [0-9\^\*]+, [0-9\^\*]+, [0-9]+\-[0-9]+$',passage): 
+        nums = re.findall(r'[0-9\^\*]+',passage)
         citations.extend(comma(book, ' '.join(nums[:-2])))
         citations.extend(continuous(book,f'{nums[0]} {nums[2]}-{nums[3]}'))
         return citations, outliers
-    if re.search('^[0-9\^\*]+-[0-9\^\*]+$',passage):
+
+    if re.search(r'^[0-9\^\*]+\-[0-9\^\*]+$',passage):
         if "^" in passage: 
+            citations.append(f'{book} {passage.strip()}')
             outliers.append(f'{book} {passage.strip()}')
         else: 
-            nums = re.findall('[0-9]+',passage)
+            nums = re.findall(r'[0-9]+',passage)
             for num in range(int(nums[0]),int(nums[1])+1): 
                 citations.append(f"{book} {num}")
         return citations, outliers
-    
+    if re.search(r'^[0-9\^\*]+\-[0-9\^\*]+ [0-9\^\*]+$',passage): 
+        # case of luke 11-31 32 
+        num = re.findall(r'[0-9\^\*]+',passage)
+        citations.extend([f"{book} {num[0]}.{num[1]}",f"{book} {num[0]}.{num[2]}"])
+        return citations, outliers
+
     parts = passage.split('-')
     idx = 0
     while idx < len(parts):
@@ -109,12 +129,16 @@ def hyphen(book,passage):
             if re.search(r'^[0-9\^\*]+ [0-9]+-[0-9]+$',actual): 
                 citations.extend(continuous(book, actual))
                 idx += 2
-            elif re.search('^[0-9]+-[0-9]+$',actual):
+            elif re.search(r'^[0-9]+-[0-9]+$',actual):
                 idx += 1 
                 citations.append(f'{book} {parts[idx].strip()}.{parts[idx+1].strip()}')
             else: 
                 idx += 1
-                outliers.append(actual)
+                if re.search(r'[0-9\^\*]+ [0-9\^\*]+$',p): 
+                    citations.append(simple(book, p))
+                else: 
+                    citations.append(f"{book} {p.split(' ')[0]}")
+                    outliers.append(actual)
         elif re.search('\,',p): 
             citations.extend(comma(book,p))
             idx += 1

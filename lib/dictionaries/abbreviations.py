@@ -622,7 +622,6 @@ abbrev = {
         'gla',
         'gla^',
         'golat',
-        'gra',
     ],
     'genesis':
     [
@@ -1183,6 +1182,7 @@ abbrev = {
     ],
     'maccabees': [
         'macabee',
+        'macca',
         'macabeus',
         'maccab',
         'maccabaeus',
@@ -1200,9 +1200,6 @@ abbrev = {
     ],
     'malachi':
     [
-        'lach',
-        'm^',
-        'm^ch',
         'm^l',
         'm^lac',
         'm^lach',
@@ -1210,9 +1207,6 @@ abbrev = {
         'ma^ac',
         'ma^ach',
         'ma^ch',
-        'maa',
-        'macch',
-        'mach',
         'mal',
         'mal^',
         'mal^ch',
@@ -1272,8 +1266,6 @@ abbrev = {
         'mar',
         'mar^',
         'marc',
-        'marce',
-        'march',
         'marck',
         'marg',
         'mark',
@@ -1361,8 +1353,6 @@ abbrev = {
         'micheah',
         'micheas',
         'michee',
-        'mieah',
-        'mieha',
         'muc',
     ],
     'nahum':
@@ -1537,8 +1527,7 @@ abbrev = {
         'pii',
         'pil',
         'pilip',
-        'plilip',
-        'thilip'
+        'plilip'
     ],
     'proverbs':
     [
@@ -1609,7 +1598,6 @@ abbrev = {
         'psalmi',
         'psalms',
         'psalmum',
-        'psalt',
         'psam',
         'psame',
         'psas',
@@ -1681,7 +1669,6 @@ abbrev = {
         'reule',
         'reuol',
         'reutl',
-        'rew',
         'reyel',
         'riuel',
         'rnuel',
@@ -1732,6 +1719,7 @@ abbrev = {
     ],
     'samuel':
     [
+        'sa',
         '^sam',
         'amel',
         's',
@@ -1748,7 +1736,6 @@ abbrev = {
         'samuelles',
         'samul',
         'sm',
-        'su^m',
         'sumuel'
     ],
     'susanna': [
@@ -1891,6 +1878,8 @@ abbrev = {
         'zachar',
         'zacharia',
         'zacharie',
+        'zacharias',
+        'zecharias',
         'zachary',
         'zache',
         'zack',

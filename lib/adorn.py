@@ -7,8 +7,9 @@ def adorn(group):
 # adorn('A41135')
 
 # adorn('A0')
-adorn('A10')
-adorn('A20')
+adorn('A00003')
+# adorn('A10')
+# adorn('A20')
 # for n in range(1,9): 
 #     adorn(f'A1{n}')
 

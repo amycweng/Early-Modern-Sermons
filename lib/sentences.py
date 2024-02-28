@@ -44,7 +44,7 @@ class Sentences():
                 curr_sermon += 1 
                 curr_page = None # fill in later by subtracting from the next known page 
             elif re.search(r"PAGE\d+",token): 
-                curr_page = int(re.findall('\d+',token)[0]) 
+                curr_page = token 
             elif re.search(r"PARAGRAPH\d+",token):
                 curr_paragraph += 1 
                 if len(curr_sentence) > 0: 
@@ -72,7 +72,7 @@ class Sentences():
                     next_token, next_pos, next_lemma = "","",""
                     
                 # case of Israell2 Sam. 16.22 in A04389
-                if re.search(r"[\w\,\.]+\d+$",token): 
+                if re.search(r"[\w\,\.]+\d+$",token) and not re.search("STARTITALICS|NONLATINALPHABET|ENDITALICS|STARTNOTE\d+|ENDNOTE\d+",token): 
                     num = re.findall(r"\d+$",token)[0]
                     token = token.split(num)[0]
                     update(token,pos,token)
