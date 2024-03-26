@@ -1,6 +1,13 @@
 
 '''Standardization dictionaries'''
 # Dictionary that maps each book of the Bible and the Apocrypha to their abbreviatons
+import re 
+def clean_word(word): 
+    word = re.sub("v","u",word) # replace all v's with u's 
+    word = re.sub(r"^i","j",word) # replace initial i's to j's 
+    word = re.sub(r"(?<=\w)y(?=\w)","i",word) # replace y's that occur within words into i's
+    return word 
+
 abbrev = { 
     'acts':
     [
@@ -33,8 +40,6 @@ abbrev = {
         'amos',
         'amoz',
         'ams',
-        'aom',
-        'aos',
     ],
     'azariah': [
         'azaria',
@@ -410,33 +415,33 @@ abbrev = {
         'esphes',
         'fphes',
     ],
-    'epistle':
-    [
-        'e^ist',
-        'e^pist',
-        'ep',
-        'ep^',
-        'ep^st',
-        'epb',
-        'epi',
-        'epi^t',
-        'epict',
-        'epis',
-        'epis^',
-        'epis^^',
-        'episc',
-        'episi',
-        'episl',
-        'epist',
-        'epist^',
-        'epistl',
-        'epistle',
-        'epit',
-        'epl',
-        'eppes',
-        'epst',
-        'ept',
-    ],
+    # 'epistle':
+    # [
+    #     'e^ist',
+    #     'e^pist',
+    #     'ep',
+    #     'ep^',
+    #     'ep^st',
+    #     'epb',
+    #     'epi',
+    #     'epi^t',
+    #     'epict',
+    #     'epis',
+    #     'epis^',
+    #     'epis^^',
+    #     'episc',
+    #     'episi',
+    #     'episl',
+    #     'epist',
+    #     'epist^',
+    #     'epistl',
+    #     'epistle',
+    #     'epit',
+    #     'epl',
+    #     'eppes',
+    #     'epst',
+    #     'ept',
+    # ],
     'esdras': [
         'esd',
         'esdt',
@@ -1611,15 +1616,11 @@ abbrev = {
         'pss',
         'psul',
         'psulmo',
-        'salm'
     ],
     'revelation':
     [
         '^euel',
         'apaca',
-        'apal',
-        'apho',
-        'aphor',
         'apo',
         'apo^',
         'apoa',
@@ -1635,10 +1636,8 @@ abbrev = {
         'apocap',
         'apoci',
         'apoe',
-        'apol',
         'apoo',
         'apos',
-        'apot',
         'r^^el',
         'r^u^l',
         'r^ue',
@@ -1760,7 +1759,7 @@ abbrev = {
     'thessalonians':
     [
         't^^ss',
-        'te',
+        # 'te',
         'tess',
         'tessa',
         'tesso',
@@ -1794,7 +1793,6 @@ abbrev = {
         'ti^',
         'tim',
         'tim^',
-        'time',
         'timeo',
         'timet',
         'timi',
@@ -1914,7 +1912,8 @@ abbrev = {
     ],
     'ibidem': [
         # special case 
-        'ibid'
+        'jb',
+        'jbid'
     ]
     # Mos? 
     # A96530,sermon,375,81,"Song of Sol. 2. 1, 2."
@@ -1933,7 +1932,7 @@ abbrev = {
 # dictionary mapping each abbreviation to its standard form 
 abbrev_to_book = {}
 for book, abbrev_list in abbrev.items():
-    abbrev_to_book[book] = book
+    abbrev_to_book[clean_word(book)] = book
     for a in abbrev_list: 
         abbrev_to_book[a] = book
 

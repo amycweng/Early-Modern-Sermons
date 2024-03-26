@@ -67,7 +67,7 @@ def extract_citations(n):
                 citations[count-1] = decomposed[0]
             if len(decomposed[1]) > 0: 
                 outliers[count-1] = decomposed[1]
-    return citations, outliers, text_str,fully_replaced
+    return citations, outliers,fully_replaced
 
 def clean_text(n): 
     # remove everything that is not an alphabetical character, integer, comma, ampersand, hyphen, asterisk, period, apostrophe or a single space
@@ -89,6 +89,7 @@ def clean_word(word):
     word = word.lower()
     word = re.sub(r"[^A-Za-z\^]","",word)
     word = re.sub("v","u",word) # replace all v's with u's 
+    word = re.sub("vv","w",word) # replace all vv's with w's 
     word = re.sub(r"^i","j",word) # replace initial i's to j's 
     word = re.sub(r"(?<=\w)y(?=\w)","i",word) # replace y's that occur within words into i's
     return word 

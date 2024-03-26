@@ -13,9 +13,9 @@ def comma(book, passage):
     passage = re.sub(rf'{book}| ,','',passage).strip()
     nums = passage.split(' ')
     chapter = nums[0]
-    if len(nums) == 2: 
-        # Hosea 2,3 case 
-        return [f'{book} {nums[0]}', f'{book} {nums[1]}']
+    # if len(nums) == 2: 
+    #     # Hosea 2,3 case 
+    #     return [f'{book} {nums[0]}', f'{book} {nums[1]}']
     for num in nums[1:]: 
         if ',' in num or num == nums[-1] or num == "^": 
             verse = num.strip('\,') 

@@ -6,20 +6,17 @@ def adorn(group):
     subprocess.run(['./adornplainemetext', f"{repo}/assets/adorned", f"{repo}/assets/plain/{group}*.txt"])
 # adorn('A41135')
 
-# adorn('A0')
-adorn('A00003')
-# adorn('A10')
-# adorn('A20')
-# for n in range(1,9): 
-#     adorn(f'A1{n}')
+adorn('A0')
+for n in range(0,9): 
+    adorn(f'A1{n}')
 
-# adorn(f"A19")
-# for n in range(1,9+1): 
-#     adorn(f'A2{n}')
+adorn(f"A19")
+for n in range(0,9+1): 
+    adorn(f'A2{n}')
 
-# for n in range(3,9+1): 
-#     adorn(f'A{n}')
-# adorn('B')
+for n in range(3,9+1): 
+    adorn(f'A{n}')
+adorn('B')
 # Notes: 
 # My custom delimiters and placeholders: SERMON{#}, STARTNOTE{#}, ENDNOTE{#}, PAGE{#}, PARAGRAPH{#}, NONLATINALPHABET  
 
@@ -30,24 +27,24 @@ adorn('A00003')
 #     XXII	XXII	np1	XXII	Xxii	0
 #     .	.	.	.	.	1
 #     XXX.XXXI	XXX.XXXI	np1	XXX.XXXI	XXX.XXXI	0
-# def bible(): 
-#     import pandas as pd 
-#     import sys,re 
-#     sys.path.append('../')
-#     data = pd.read_csv("../assets/kjv.csv")
-#     doc_id = data['doc_id']
-#     text = data['text']
-#     plaintext = []
-#     for idx, d_id in enumerate(doc_id): 
-#         d_id = d_id.strip(" (KJV)")
-#         d_id = re.sub(":","-",d_id)
-#         d_id = "-".join(d_id.split(" "))
-#         d_id = f"VERSE-{d_id}"
-#         plaintext.append(f"{d_id} {text[idx]}")
+def bible(): 
+    import pandas as pd 
+    import sys,re 
+    sys.path.append('../')
+    data = pd.read_csv("../assets/kjv.csv")
+    doc_id = data['doc_id']
+    text = data['text']
+    plaintext = []
+    for idx, d_id in enumerate(doc_id): 
+        d_id = d_id.strip(" (KJV)")
+        d_id = re.sub(":","-",d_id)
+        d_id = "-".join(d_id.split(" "))
+        d_id = f"VERSE-{d_id}"
+        plaintext.append(f"{d_id} {text[idx]}")
 
-#     plaintext = " ".join(plaintext)
-#     with open("../assets/kjv.txt","w+") as file: 
-#         file.write(plaintext)
+    plaintext = " ".join(plaintext)
+    with open("../assets/kjv.txt","w+") as file: 
+        file.write(plaintext)
 
 # def adornbible(): 
 #     repo = '/Users/amycweng/DH/Early-Modern-Sermons' # github repo 

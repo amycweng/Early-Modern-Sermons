@@ -43,7 +43,7 @@ class Sentences():
                 # start of a new sermon in the text 
                 curr_sermon += 1 
                 curr_page = None # fill in later by subtracting from the next known page 
-            elif re.search(r"PAGE\d+",token): 
+            elif re.search(r"PAGE\d+|PAGEIMAGE\d+",token): 
                 curr_page = token 
             elif re.search(r"PARAGRAPH\d+",token):
                 curr_paragraph += 1 
