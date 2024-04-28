@@ -1,22 +1,30 @@
-import os, subprocess 
+import os, subprocess,json 
+import pandas as pd 
 # NUPOS: https://morphadorner.northwestern.edu/documentation/nupos/
 def adorn(group): 
     repo = '/Users/amycweng/DH/Early-Modern-Sermons' # github repo 
     os.chdir('/Users/amycweng/DH/morphadorner-2')
     subprocess.run(['./adornplainemetext', f"{repo}/assets/adorned", f"{repo}/assets/plain/{group}*.txt"])
-# adorn('A41135')
 
-adorn('A0')
-for n in range(0,9): 
-    adorn(f'A1{n}')
+if __name__ == "__main__": 
+    with open('../assets/corpora.json','r') as file: 
+        corpora = json.load(file)
 
-adorn(f"A19")
-for n in range(0,9+1): 
-    adorn(f'A2{n}')
+    for prefix,tcpIDs in corpora["pre-Elizabethan"].items(): 
+        for tcpID in tcpIDs: 
+            adorn(tcpID)
 
-for n in range(3,9+1): 
-    adorn(f'A{n}')
-adorn('B')
+# adorn('A0')
+# for n in range(0,9): 
+#     adorn(f'A1{n}')
+
+# adorn(f"A19")
+# for n in range(0,9+1): 
+#     adorn(f'A2{n}')
+
+# for n in range(3,9+1): 
+#     adorn(f'A{n}')
+# adorn('B')
 # Notes: 
 # My custom delimiters and placeholders: SERMON{#}, STARTNOTE{#}, ENDNOTE{#}, PAGE{#}, PARAGRAPH{#}, NONLATINALPHABET  
 

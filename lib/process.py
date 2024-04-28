@@ -98,7 +98,7 @@ def encode(tcpID):
                 margins.append((sent_idx, part))
     return margins, sents, info
 
-def process_prefix(tcpIDs,prefix): 
+def process_prefix(tcpIDs,era,prefix): 
     margins = {}
     texts = {}
     info = {}
@@ -113,20 +113,24 @@ def process_prefix(tcpIDs,prefix):
             print(progress)
     print('finished all')
 
-    with open(f"../assets/processed/{prefix}_marginalia.json","w+") as file: 
+    with open(f"../assets/processed/{era}/json/{prefix}_marginalia.json","w+") as file: 
         json.dump(margins, file)
         print("wrote marginalia")
 
-    with open(f"../assets/processed/{prefix}_texts.json","w+") as file: 
+    with open(f"../assets/processed/{era}/json/{prefix}_texts.json","w+") as file: 
         json.dump(texts, file)
         print("wrote texts")
 
-    with open(f"../assets/processed/{prefix}_info.json","w+") as file: 
+    with open(f"../assets/processed/{era}/json/{prefix}_info.json","w+") as file: 
         json.dump(info, file)
         print("wrote sentence info")
 
 
 if __name__ == "__main__": 
-    prefixes = ['B','A0','A1','A2','A3','A4','A5','A6','A7','A8','A9']
-    for prefix in prefixes: 
-        process_prefix(get_ids(prefix),prefix)
+    with open('../assets/corpora.json','r') as file: 
+        corpora = json.load(file)
+    era = "pre-Elizabethan"
+    for prefix,tcpIDs in corpora[era].items():
+        tcpIDs = sorted(tcpIDs)
+        if len(tcpIDs) == 0: continue
+        process_prefix(tcpIDs,era, prefix)
