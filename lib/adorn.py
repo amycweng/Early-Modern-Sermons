@@ -39,7 +39,7 @@ def bible():
     import pandas as pd 
     import sys,re 
     sys.path.append('../')
-    data = pd.read_csv("../assets/kjv.csv")
+    data = pd.read_csv("../assets/bible/kjv.csv")
     doc_id = data['doc_id']
     text = data['text']
     plaintext = []
@@ -54,10 +54,10 @@ def bible():
     with open("../assets/kjv.txt","w+") as file: 
         file.write(plaintext)
 
-# def adornbible(): 
-#     repo = '/Users/amycweng/DH/Early-Modern-Sermons' # github repo 
-#     os.chdir('/Users/amycweng/DH/morphadorner-2')
-#     subprocess.run(['./adornplainemetext', f"{repo}/assets", f"{repo}/assets/kjv.txt"])
+def adornbible(): 
+    repo = '/Users/amycweng/DH/Early-Modern-Sermons' # github repo 
+    os.chdir('/Users/amycweng/DH/morphadorner-2')
+    subprocess.run(['./adornplainemetext', f"{repo}/assets", f"{repo}/assets/kjv.txt"])
 
 # bible()
 # adornbible()
