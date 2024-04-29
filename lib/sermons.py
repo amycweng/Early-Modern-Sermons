@@ -1,26 +1,26 @@
-import json 
+import json,csv 
 import sys
 sys.path.append('../')
 
 class Sermons():
-    def __init__(self, prefix):
+    def __init__(self, era, prefix):
+        self.era = era
         self.prefix = prefix
         self.sent_id = [] # tuples of ((tcpID, chunk idx, location), subchunk idx) representing the subchunk's ID
-        self.sentences = [] # subchunk strings that are lemmatized
+        self.lemmata = [] # subchunk strings that are lemmatized
         self.fw_subchunks = {} # IDs of subchunks with more than three foreign words
-        self.chunks = [] # subchunk strings that are tokenized
+        self.tokens = [] # subchunk strings that are tokenized
 
         self.get_texts_from_json()
         self.get_marginalia_from_json()
         self.get_indices()
-        self.get_chunks(self.chunks)
 
     def get_indices(self):
         self.sent_id_to_idx = {x:idx for idx, x in enumerate(self.sent_id)}
 
     def get_marginalia_from_json(self):
         # reorganize marginalia dictionary from the JSON file
-        with open(f'../assets/processed/{self.prefix}_marginalia.json','r') as file:
+        with open(f'../assets/processed/{self.era}/json/{self.prefix}_marginalia.json','r') as file:
             marginalia = json.load(file)
             print('Loaded marginalia')
         new_marginalia = {}
@@ -44,20 +44,19 @@ class Sermons():
               if s_idx != curr_s: curr_s = s_idx
               new_marginalia[tcpID][(s_idx, note_id)] = item[-1]
         marginalia = new_marginalia
-        self.create_corpus(marginalia,True)
-        print('Processed marginalia')
+        if len(marginalia) > 0: 
+            self.create_corpus(marginalia,True)
+            print('Processed marginalia')
 
     def get_texts_from_json(self):
-        with open(f'../assets/processed/{self.prefix}_texts.json','r') as file:
+        with open(f'../assets/processed/{self.era}/json/{self.prefix}_texts.json','r') as file:
             texts = json.load(file)
             print('Loaded texts')
         self.create_corpus(texts)
         print('Processed texts')
 
     def create_corpus(self, data,is_margin=False):
-      for tcpID, items in data.items():
-          if self.prefix not in tcpID: continue
-
+      for tcpID, items in data.items():          
           for s_idx, encodings in items.items():
               current = []
               tokens = []
@@ -109,9 +108,9 @@ class Sermons():
                       return False
 
                   if segment or (idx == (len(encodings)-1)):
-                      self.sentences.append(" ".join(current))
+                      self.lemmata.append(" ".join(current))
                       self.sent_id.append((sid,part_id))
-                      self.chunks.append(" ".join(tokens))
+                      self.tokens.append(" ".join(tokens))
                       if check_foreign(fw):
                           self.fw_subchunks[f"{sid[0]},{sid[1]},{sid[2]},{part_id}"] = fw
 
@@ -122,7 +121,7 @@ class Sermons():
                       fw_idx = 0
                       part_id += 1
     
-    def get_chunks(self, original):
+    def get_chunks(self, targets):
       chunks = {} # keys are just (tcpID, chunk idx, is_note)
       for s_id, part_id in self.sent_id:
           if s_id[-1] > -1:
@@ -130,18 +129,82 @@ class Sermons():
               if curr_sid not in chunks:
                   chunks[curr_sid] = {}
               if s_id[-1] not in chunks[curr_sid]:
-                  chunks[curr_sid][s_id[-1]] = original[self.sent_id_to_idx[(s_id,part_id)]]
+                  chunks[curr_sid][s_id[-1]] = targets[self.sent_id_to_idx[(s_id,part_id)]]
               else: 
-                  chunks[curr_sid][s_id[-1]] = chunks[curr_sid][s_id[-1]] + " " + original[self.sent_id_to_idx[(s_id,part_id)]]
+                  chunks[curr_sid][s_id[-1]] = chunks[curr_sid][s_id[-1]] + " " + targets[self.sent_id_to_idx[(s_id,part_id)]]
           else:
               curr_sid = f"{s_id[0]},{s_id[1]},False"
               if curr_sid not in chunks:
-                  chunks[curr_sid] = original[self.sent_id_to_idx[(s_id,part_id)]]
+                  chunks[curr_sid] = targets[self.sent_id_to_idx[(s_id,part_id)]]
               else: 
-                  chunks[curr_sid] = chunks[curr_sid] + " " + original[self.sent_id_to_idx[(s_id,part_id)]]
-      self.chunks = chunks
+                  chunks[curr_sid] = chunks[curr_sid] + " " + targets[self.sent_id_to_idx[(s_id,part_id)]]
+      return chunks 
+    
+if __name__ == "__main__": 
+    with open('../assets/corpora.json','r') as file: 
+        corpora = json.load(file)
 
-prefix = 'B'
-corpus = Sermons(prefix)
-with open(f'../assets/processed/{prefix}.json','w+') as file: 
-    json.dump([corpus.sent_id,corpus.sentences,corpus.chunks,corpus.fw_subchunks],file)
+    era = "pre-Elizabethan"
+
+    for prefix,tcpIDs in corpora[era].items():
+        print(prefix)
+        if len(tcpIDs) == 0: continue
+
+        tcpIDs = sorted(tcpIDs)
+        seen = {}
+        corpus = Sermons("pre-Elizabethan",prefix)
+        body_formatted = []
+        margins_formatted = []
+
+        tokenized = corpus.get_chunks(corpus.tokens)
+        lemmatized = corpus.get_chunks(corpus.lemmata)
+
+        with open(f"../assets/processed/{era}/json/{prefix}_info.json") as file: 
+            info = json.load(file)
+
+        for key, segment in tokenized.items():
+            key = key.split(",")
+            tcpID = key[0]
+            if tcpID not in seen: 
+                nidx = 0
+                seen[tcpID] = True 
+
+            i = info[key[0]][key[1]]
+            if i[1] is None: loc_type = None
+            elif 'IMAGE' in i[1]: loc_type = "IMAGE"
+            else: loc_type = "PAGE"
+
+            if key[-1] == 'False':
+                body_formatted.append({
+                    'tcpID': tcpID,
+                    'sid': key[1],
+                    'section': i[0],
+                    'loc': [i[1].split(loc_type)[-1] if loc_type is not None else None][0], 
+                    'loc_type': loc_type, 
+                    'pid': i[2], 
+                    'tokens': segment, 
+                    'lemmatized': lemmatized[",".join(key)]
+                })
+            else: 
+                for nid, part in segment.items(): 
+                    margins_formatted.append({
+                        'tcpID': tcpID,
+                        'sid': key[1],
+                        'nid': nid,
+                        'tokens': segment[nid], 
+                        'lemmatized': lemmatized[",".join(key)][nid]
+                    })
+        
+        if len(body_formatted) == 0: continue
+
+        with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_body.csv','w+') as file: 
+            writer = csv.DictWriter(file, fieldnames=body_formatted[0].keys())
+            writer.writerows(body_formatted)
+            print(f'{prefix} body done')
+        with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_margin.csv','w+') as file: 
+            writer = csv.DictWriter(file, fieldnames=margins_formatted[0].keys())
+            writer.writerows(margins_formatted)
+            print(f'{prefix} marginalia done')
+
+        with open(f'../assets/processed/{era}/sub-segments/{prefix}.json','w+') as file: 
+            json.dump([corpus.sent_id,corpus.lemmata,corpus.fw_subchunks],file)

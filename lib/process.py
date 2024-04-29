@@ -3,7 +3,6 @@ import sys
 sys.path.append('../')
 from lib.standardization import * 
 from lib.sentences import *
-from lib.dictionaries.pos import fix_pos
 import pandas as pd 
 
 sermons_metadata = pd.read_csv("../assets/sermons.csv")
@@ -52,6 +51,8 @@ def encode(tcpID):
             elif token == "ENDITALICS": 
                 in_italics = False 
             elif re.search(r"STARTNOTE\d+", token):
+                # add a placeholder to retain the note's position in the text 
+                encoded.append((f'<NOTE>',"NOTE",f'<NOTE>',0,0))
                 in_note, start_note = True, True 
             elif re.search(r"ENDNOTE\d+",token): 
                 in_note = False

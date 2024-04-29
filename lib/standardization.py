@@ -80,7 +80,10 @@ def clean_text(n):
         n = re.sub(r"\b[vc]\b"," ",n)
     
     # normalize conjunctions 
-    n = re.sub(r"\band\b|\bet\b|\b\&\b",' & ', n)
+    n = re.sub(r"\band\b|\bet\b|\b\&\b|\b& &\b",' & ', n)
+    numAMP = re.findall(r"([\d])(&)",n)
+    for instance in numAMP: # an ampersand stuck to a number 
+        n = re.sub(f'{instance[0]}&', f"{instance[0]} &",n)
     # replace all instances of multiple white spaces with a single space. 
     n = re.sub(r'\s+',' ',n)
     return n 
@@ -124,20 +127,31 @@ def replaceBook(text):
     replaced = []
     for idx, word in enumerate(text):   
         if re.search(r"^'",word): continue
+        if re.search(r"^is$|^ch$|^de$|^the$|^can$|^he$|^am$|^time$|$the\^|^tyme$|^ti\^|^i\^|^Apol$|^ne$|^te$|^ti$|^tb$|^ac$|^child|^chyld",word): continue # without capitalization and a period 
         word = clean_word(text[idx])
         # initial i's have been converted to j's       
-        if re.search(r"^js$|^ch$|^de$|^the$|^can$",word): continue # without capitalization and a period 
         # print(word)
         # identififed a valid abbreviation         
         if word in abbrev_to_book:
             if idx+1 in range(len(text)): # must be followed by at least one number 
                 follow = convert_numeral(re.sub(r"([^\w\d\*\^])$","",text[idx+1])) # remove trailing punctuation
+                follow_is_num = re.match(r'^[0-9\*\^]+$',follow)
                 if idx + 2 < len(text):
                     follow2 = convert_numeral(re.sub(r"([^\w\d\*\^])$","",text[idx+2]))
-                    if not re.match(r'^[0-9\*\^]+$',follow):
-                        if not (text[idx+1] == "," and re.match(r'^[0-9\*\^]+$',follow2)):
-                            continue
-                elif not re.match(r'^[0-9\*\^]+$',follow): 
+                    follow2_is_num = re.match(r'^[0-9\*\^]+$',follow2)
+                    if (not follow_is_num) and (not follow2_is_num):
+                        continue
+                    elif (not follow_is_num) and re.search("^i$|^\*$",text[idx+2].lower()): 
+                        # the latter to prevent false positives caused by the conversion of the pronoun 'I' to 1 
+                        continue
+                    elif not follow_is_num and len(follow) > 3: 
+                        continue
+                    elif (not follow2_is_num) and re.search("^i$|^\*$",text[idx+1].lower()): 
+                        continue
+                    elif text[idx][0].islower() and re.match(r'^[\^]+$',follow): 
+                        continue
+                elif not follow_is_num: 
+                    # to prevent false positives caused by the conversion of the pronoun 'I' to 1 
                     continue  
 
             # elif idx > 0: # or preceded by at least one number 
