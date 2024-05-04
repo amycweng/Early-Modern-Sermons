@@ -74,9 +74,9 @@ class Sentences():
                 
                 if prev_known_page == next_page: 
                     curr_page = f"{page_type}{next_page}"
-                elif prev_known_page is None: 
+                elif prev_known_page is None and next_page is not None: 
                     curr_page = f"{page_type}{next_page-1}"
-                elif (prev_known_page + 1) != next_page: 
+                elif next_page is not None and (prev_known_page + 1) != next_page: 
                     # when the extracted sections are not consecutive
                     curr_page = f"{page_type}{next_page-1}"
                 else: 

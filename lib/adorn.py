@@ -9,10 +9,13 @@ def adorn(group):
 if __name__ == "__main__": 
     with open('../assets/corpora.json','r') as file: 
         corpora = json.load(file)
-
-    for prefix,tcpIDs in corpora["pre-Elizabethan"].items(): 
-        for tcpID in tcpIDs: 
-            adorn(tcpID)
+    era_name = 'Elizabethan'
+    already_adorned = os.listdir('../assets/adorned')
+    already_adorned = {k.split(".txt")[0]:None for k in already_adorned}
+    for prefix,tcpIDs in corpora['Elizabethan'].items(): 
+        for tcpID in sorted(tcpIDs): 
+            if tcpID not in already_adorned: 
+                adorn(tcpID)
 
 # adorn('A0')
 # for n in range(0,9): 

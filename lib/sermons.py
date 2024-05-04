@@ -144,7 +144,8 @@ if __name__ == "__main__":
     with open('../assets/corpora.json','r') as file: 
         corpora = json.load(file)
 
-    era = "pre-Elizabethan"
+    # era = "pre-Elizabethan"
+    era = 'Elizabethan'
 
     for prefix,tcpIDs in corpora[era].items():
         print(prefix)
@@ -152,7 +153,7 @@ if __name__ == "__main__":
 
         tcpIDs = sorted(tcpIDs)
         seen = {}
-        corpus = Sermons("pre-Elizabethan",prefix)
+        corpus = Sermons(era,prefix)
         body_formatted = []
         margins_formatted = []
 

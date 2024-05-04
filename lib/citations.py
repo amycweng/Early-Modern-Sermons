@@ -3,16 +3,16 @@ sys.path.append('../')
 import pandas as pd 
 from lib.standardization import * 
 
-ERA = "pre-Elizabethan"
+# ERA = "pre-Elizabethan"
+ERA = "Elizabethan"
 FOLDER = '/Users/amycweng/DH/SERMONS_APP/db/data'
 
 if __name__ == "__main__": 
     with open('../assets/corpora.json','r') as file: 
         corpora = json.load(file)
 
-    era = "pre-Elizabethan"
     prefixes = []
-    for prefix,ids in corpora[era].items(): 
+    for prefix,ids in corpora[ERA].items(): 
         if len(ids) > 0: prefixes.append(prefix)
     
     formatted_citations = []
