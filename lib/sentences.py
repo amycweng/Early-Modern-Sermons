@@ -42,7 +42,45 @@ class Sentences():
             if re.search(r"SERMON\d+",token):
                 # start of a new sermon in the text 
                 curr_sermon += 1 
-                curr_page = None # fill in later by subtracting from the next known page 
+                prev_known_page = None 
+                page_type = None 
+                idx_to_find_page = idx
+                while prev_known_page is None: 
+                    if idx_to_find_page >= 0: 
+                        temp = adorned[idx_to_find_page]
+                        temp = temp.strip("\n").split("\t")
+                        if len(temp) == 0: continue
+                        if re.search(r"PAGE\d+|PAGEIMAGE\d+",temp[0]):
+                            temp = re.findall(r'([A-Z]+)(\d+)',temp[0])[0]
+                            page_type = temp[0]
+                            prev_known_page = int(temp[1])
+                        idx_to_find_page -= 1 
+                    else: 
+                        break
+                next_page = None 
+                idx_to_find_page = idx
+                while next_page is None: 
+                    if idx_to_find_page < len(adorned): 
+                        temp = adorned[idx_to_find_page]
+                        temp = temp.strip("\n").split("\t")
+                        if len(temp) == 0: continue
+                        if re.search(r"PAGE\d+|PAGEIMAGE\d+",temp[0]):
+                            temp = re.findall(r'([A-Z]+)(\d+)',temp[0])[0]
+                            page_type = temp[0]
+                            next_page = int(temp[1])
+                        idx_to_find_page += 1 
+                    else: 
+                        break
+                
+                if prev_known_page == next_page: 
+                    curr_page = f"{page_type}{next_page}"
+                elif prev_known_page is None: 
+                    curr_page = f"{page_type}{next_page-1}"
+                elif (prev_known_page + 1) != next_page: 
+                    # when the extracted sections are not consecutive
+                    curr_page = f"{page_type}{next_page-1}"
+                else: 
+                    curr_page = f"{page_type}{prev_known_page}"
             elif re.search(r"PAGE\d+|PAGEIMAGE\d+",token): 
                 curr_page = token 
             elif re.search(r"PARAGRAPH\d+",token):
