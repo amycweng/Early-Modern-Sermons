@@ -145,7 +145,7 @@ if __name__ == "__main__":
         corpora = json.load(file)
 
     # era = "pre-Elizabethan"
-    era = 'Elizabethan'
+    era = input('Enter subcorpus name: ')
 
     for prefix,tcpIDs in corpora[era].items():
         print(prefix)
@@ -203,7 +203,7 @@ if __name__ == "__main__":
             writer.writerows(body_formatted)
             print(f'{prefix} body done')
         with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_margin.csv','w+') as file: 
-            writer = csv.DictWriter(file, fieldnames=margins_formatted[0].keys())
+            writer = csv.DictWriter(file, fieldnames=['tcpID','sid','nid','tokens','lemmatized'])
             writer.writerows(margins_formatted)
             print(f'{prefix} marginalia done')
 

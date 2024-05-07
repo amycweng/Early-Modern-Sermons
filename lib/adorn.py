@@ -9,10 +9,10 @@ def adorn(group):
 if __name__ == "__main__": 
     with open('../assets/corpora.json','r') as file: 
         corpora = json.load(file)
-    era_name = 'Elizabethan'
+    era_name = input('Enter subcorpus name: ')
     already_adorned = os.listdir('../assets/adorned')
     already_adorned = {k.split(".txt")[0]:None for k in already_adorned}
-    for prefix,tcpIDs in corpora['Elizabethan'].items(): 
+    for prefix,tcpIDs in corpora[era_name].items(): 
         for tcpID in sorted(tcpIDs): 
             if tcpID not in already_adorned: 
                 adorn(tcpID)

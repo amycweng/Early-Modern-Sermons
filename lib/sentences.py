@@ -82,7 +82,12 @@ class Sentences():
                 else: 
                     curr_page = f"{page_type}{prev_known_page}"
             elif re.search(r"PAGE\d+|PAGEIMAGE\d+",token): 
-                curr_page = token 
+                pagenum = re.findall(r'([A-Z]+\d+)(.*?)',token)[0]
+                curr_page = pagenum[0] 
+                if len(pagenum[1]) > 0: 
+                    # case of PAGEIMAGE23The
+                    update(pagenum[1],None,pagenum[1])
+                
             elif re.search(r"PARAGRAPH\d+",token):
                 curr_paragraph += 1 
                 if len(curr_sentence) > 0: 

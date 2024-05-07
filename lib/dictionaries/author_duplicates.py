@@ -102,14 +102,14 @@ duplicates = {
     'Baker, Thomas, Rector of St. Mary the More': ['Baker, Thomas, Rector of St. Mary the More. Gods provenance asserted in another sermon preached at St. Buttolphs, Aldergate, London', 
                        'Baker, Thomas, Rector of St. Mary the More', 
                        'Baker, Thomas, Rector of St. Mary the More. Christs comming to judgement deciphered in a third sermon'],
-    'Collinges, John,': ['Collinges, John, 1623-1690', 'Collinges, John, 1623-1690& death of a true Christian deciphered in a sermon'],
-    'Cowper, William,': ['Cowper, William, 1568-1619', 'Cowper, William, 1588-1619'],
-    'Burgess, Anthony,': ['Burgess, Anthony, d. 1664', 'Burgess, Anthony, d. 1664& hereticks'],
-    'Brinsley, John,': ['Brinsley, John, 1660-1665', 'Brinsley, John, 1600-1665'],
-    'Jones, John,': ['Jones, John, minister at St. Michael Basenshaw, London', 'Jones, John, minister at St. Michael Bashenshaw, London'],
-    'Perkins, William,': ['Perkins, William, 1558-1602', 'Perkins, William, 1588-1602'],
-    'De Laune,': ['De Laune, Thomas, d. 1685', 'De Laune, Thomas, d. 1685̄n tou thēriou'],
-    'Rastell, John,': ['Rastell, John, 1532-1577', 'Rastell, John, 1532-1577(which Catholikes doe call Passion Sondaie) Anno Domini .M.D.LX. Selections']
+    'Collinges, John, 1623-1690': ['Collinges, John, 1623-1690', 'Collinges, John, 1623-1690& death of a true Christian deciphered in a sermon'],
+    'Cowper, William, 1568-1619': ['Cowper, William, 1568-1619', 'Cowper, William, 1588-1619'],
+    'Burgess, Anthony, d. 1664': ['Burgess, Anthony, d. 1664', 'Burgess, Anthony, d. 1664& hereticks'],
+    'Brinsley, John, 1660-1665': ['Brinsley, John, 1660-1665', 'Brinsley, John, 1600-1665'],
+    'Jones, John, minister at St. Michael Bashenshaw, London': ['Jones, John, minister at St. Michael Basenshaw, London', 'Jones, John, minister at St. Michael Bashenshaw, London'],
+    'Perkins, William, 1558-1602': ['Perkins, William, 1558-1602', 'Perkins, William, 1588-1602'],
+    'De Laune, d. 1685': ['De Laune, Thomas, d. 1685', 'De Laune, Thomas, d. 1685̄n tou thēriou'],
+    'Rastell, John, 1532-1577': ['Rastell, John, 1532-1577', 'Rastell, John, 1532-1577(which Catholikes doe call Passion Sondaie) Anno Domini .M.D.LX. Selections']
 }
 
 '''

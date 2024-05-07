@@ -4,10 +4,11 @@ import pandas as pd
 from lib.standardization import * 
 
 # ERA = "pre-Elizabethan"
-ERA = "Elizabethan"
 FOLDER = '/Users/amycweng/DH/SERMONS_APP/db/data'
 
 if __name__ == "__main__": 
+    ERA = input('Enter subcorpus name: ')
+
     with open('../assets/corpora.json','r') as file: 
         corpora = json.load(file)
 

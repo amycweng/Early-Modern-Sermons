@@ -131,7 +131,7 @@ if __name__ == "__main__":
     with open('../assets/corpora.json','r') as file: 
         corpora = json.load(file)
     # era = "pre-Elizabethan"
-    era = 'Elizabethan'
+    era = input('Enter subcorpus name: ')
     for prefix,tcpIDs in corpora[era].items():
         tcpIDs = sorted(tcpIDs)
         if len(tcpIDs) == 0: continue
