@@ -7,7 +7,7 @@ class Sermons():
         self.era = era
         self.prefix = prefix
         self.sent_id = [] # tuples of ((tcpID, chunk idx, location), subchunk idx) representing the subchunk's ID
-        self.lemmata = [] # subchunk strings that are lemmatized
+        self.standard = [] # subchunk strings that are standardized
         self.fw_subchunks = {} # IDs of subchunks with more than three foreign words
         self.tokens = [] # subchunk strings that are tokenized
 
@@ -76,13 +76,11 @@ class Sermons():
               for idx, x in enumerate(encodings):
                   segment = False
 
-                  token, pos, lemma = x[0], x[1], x[2]
+                  token, pos, standard_spelling = x[0], x[1], x[2]
                   if len(token) == 0: continue
                   tokens.append(token)
-                  if lemma == "encage" and token.isdigit():
-                      current.append(x[0])
-                  else:
-                      current.append(lemma)
+                  
+                  current.append(standard_spelling)
 
                   if 'fw' in pos: # foreign words
                       fw.append(fw_idx)
@@ -108,7 +106,7 @@ class Sermons():
                       return False
 
                   if segment or (idx == (len(encodings)-1)):
-                      self.lemmata.append(" ".join(current))
+                      self.standard.append(" ".join(current))
                       self.sent_id.append((sid,part_id))
                       self.tokens.append(" ".join(tokens))
                       if check_foreign(fw):
@@ -158,7 +156,7 @@ if __name__ == "__main__":
         margins_formatted = []
 
         tokenized = corpus.get_chunks(corpus.tokens)
-        lemmatized = corpus.get_chunks(corpus.lemmata)
+        standardized = corpus.get_chunks(corpus.standard)
 
         with open(f"../assets/processed/{era}/json/{prefix}_info.json") as file: 
             info = json.load(file)
@@ -184,7 +182,7 @@ if __name__ == "__main__":
                     'loc_type': loc_type, 
                     'pid': i[2], 
                     'tokens': segment, 
-                    'lemmatized': lemmatized[",".join(key)]
+                    'standardized': standardized[",".join(key)]
                 })
             else: 
                 for nid, part in segment.items(): 
@@ -193,7 +191,7 @@ if __name__ == "__main__":
                         'sid': key[1],
                         'nid': nid,
                         'tokens': segment[nid], 
-                        'lemmatized': lemmatized[",".join(key)][nid]
+                        'standardized': standardized[",".join(key)][nid]
                     })
         
         if len(body_formatted) == 0: continue
@@ -203,9 +201,9 @@ if __name__ == "__main__":
             writer.writerows(body_formatted)
             print(f'{prefix} body done')
         with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_margin.csv','w+') as file: 
-            writer = csv.DictWriter(file, fieldnames=['tcpID','sid','nid','tokens','lemmatized'])
+            writer = csv.DictWriter(file, fieldnames=['tcpID','sid','nid','tokens','standardized'])
             writer.writerows(margins_formatted)
             print(f'{prefix} marginalia done')
 
         with open(f'../assets/processed/{era}/sub-segments/{prefix}.json','w+') as file: 
-            json.dump([corpus.sent_id,corpus.lemmata,corpus.fw_subchunks],file)
+            json.dump([corpus.sent_id,corpus.standard,corpus.fw_subchunks],file)

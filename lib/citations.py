@@ -20,7 +20,7 @@ if __name__ == "__main__":
     for prefix in prefixes: 
         done = {}
         body = pd.read_csv(f"{FOLDER}/{ERA}/{prefix}_body.csv",
-                                names = ["tcpID","sidx","section","loc","loc_type","pid","tokens","lemmatized"])
+                                names = ["tcpID","sidx","section","loc","loc_type","pid","tokens","standardized"])
         for idx, token_str in enumerate(body["tokens"]): 
             tcpID = body["tcpID"][idx]
             if tcpID not in done:
@@ -44,7 +44,7 @@ if __name__ == "__main__":
         
         done = {}
         marginalia = pd.read_csv(f"{FOLDER}/{ERA}/{prefix}_margin.csv"
-                        , names = ["tcpID","sidx","nidx","tokens","lemmatized"])
+                        , names = ["tcpID","sidx","nidx","tokens","standardized"])
         for idx, token_str in enumerate(marginalia["tokens"]): 
             tcpID = marginalia["tcpID"][idx]
             if tcpID not in done:

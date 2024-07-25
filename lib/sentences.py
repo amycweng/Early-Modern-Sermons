@@ -15,7 +15,7 @@ class Sentences():
         curr_sermon, curr_page, curr_paragraph = 0, None, 0
         curr_sentence = []
         curr_pos = []
-        curr_lemma = []
+        curr_standard = []
         curr_in_note = False  
 
         # tcpID, sermon, start_page, sent_idx, sentence, sentence_pos, sentence_lemmas   
@@ -24,22 +24,22 @@ class Sentences():
             parts = item.strip("\n").split("\t")
             if len(item) == 0: continue
 
-            token, pos, lemma, EOS = parts[0], parts[2], parts[4], parts[5]
-            if "^" in token: lemma = token
+            token, pos, standard, EOS = parts[0], parts[2], parts[3], parts[5]
+            if "^" in token: standard = token
 
             def update(t,p,l): 
                 curr_sentence.append(t)
                 if not re.search("STARTITALICS|NONLATINALPHABET|ENDITALICS|STARTNOTE\d+|ENDNOTE\d+",t):
                     if re.search("^[vV]er$",t): # sometimes ver gets turned into for
-                        curr_lemma.append(t)
+                        curr_standard.append(t)
                     else: 
-                        curr_lemma.append(l)
+                        curr_standard.append(l)
                     curr_pos.append(p)
                 else:
-                    curr_lemma.append(t)
+                    curr_standard.append(t)
                     curr_pos.append(t)
             
-            if re.search(r"SERMON\d+",token):
+            if re.search(r"SECTION\d+",token):
                 # start of a new sermon in the text 
                 curr_sermon += 1 
                 prev_known_page = None 
@@ -94,10 +94,10 @@ class Sentences():
                     sentences.append((curr_sermon, curr_page, curr_paragraph, 
                                         " ".join(curr_sentence),
                                         " ".join(curr_pos),
-                                        " ".join(curr_lemma)))
+                                        " ".join(curr_standard)))
                     curr_sentence = []
                     curr_pos = []
-                    curr_lemma = []
+                    curr_standard = []
             else: 
                 
                 
@@ -131,9 +131,9 @@ class Sentences():
                     words = ''.join(words)
                     words = words.split(" ")
                     for word in words: 
-                        update(word, "", lemma)
+                        update(word, "", standard)
                 else: 
-                    update(token,pos,lemma)
+                    update(token,pos,standard)
 
                 if EOS == "1":
                     if pos == "crd" and len(curr_sentence) == 1 and len(sentences) > 0: 
@@ -142,10 +142,10 @@ class Sentences():
                             sentences[-1] = (serm,page,para,
                                             c+ " " + " ".join(curr_sentence),
                                             d + " " + " ".join(curr_pos),
-                                            e + " " + " ".join(curr_lemma))
+                                            e + " " + " ".join(curr_standard))
                             curr_sentence = []
                             curr_pos = []
-                            curr_lemma = [] 
+                            curr_standard = [] 
                             continue
                     
                     if pos != token: 
@@ -167,7 +167,7 @@ class Sentences():
                             # current EOS token is a proper noun and the next word is foreign 
                             # (in the case of Latin quotations right after a person's name) 
                             continue
-                        elif re.search(r"etc",lemma): 
+                        elif re.search(r"etc",standard): 
                             # case of "By faith Noah warned of God moved with fear, STARTITALICS &c. ENDITALICS H*b. 11. 7."
                             continue 
                         else: 
@@ -183,12 +183,12 @@ class Sentences():
                                     sentences[-1] = (serm,page,para,
                                                     c+ " " + " ".join(curr_sentence),
                                                     d + " " + " ".join(curr_pos),
-                                                    e + " " + " ".join(curr_lemma))
+                                                    e + " " + " ".join(curr_standard))
                                 else: 
                                     sentences.append((curr_sermon, curr_page, curr_paragraph, 
                                                     " ".join(curr_sentence),
                                                     " ".join(curr_pos),
-                                                    " ".join(curr_lemma)))
+                                                    " ".join(curr_standard)))
                             
                             elif len(sentences) > 0:                    
                                 serm,page,para,c,d,e = sentences[-1]
@@ -205,19 +205,19 @@ class Sentences():
                                     sentences[-1] = (serm,page,para,
                                                     c+ " " + " ".join(curr_sentence),
                                                     d + " " + " ".join(curr_pos),
-                                                    e + " " + " ".join(curr_lemma))
+                                                    e + " " + " ".join(curr_standard))
                                 else: 
                                     sentences.append((curr_sermon, curr_page, curr_paragraph, 
                                                     " ".join(curr_sentence),
                                                     " ".join(curr_pos),
-                                                    " ".join(curr_lemma)))
+                                                    " ".join(curr_standard)))
                             else: 
                                 sentences.append((curr_sermon, curr_page, curr_paragraph, 
                                                 " ".join(curr_sentence),
                                                 " ".join(curr_pos),
-                                                " ".join(curr_lemma)))
+                                                " ".join(curr_standard)))
                             curr_sentence = []
                             curr_pos = []
-                            curr_lemma = [] 
+                            curr_standard = [] 
         self.sentences = sentences
 

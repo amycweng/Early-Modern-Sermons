@@ -24,17 +24,17 @@ def encode(tcpID):
         sermon_idx, start_page, paragraph, s, p, l = tuple 
         info[sent_idx] = (sermon_idx, start_page, paragraph)
 
-        sentence, pos, lemmatized = [], [] ,[]
+        sentence, pos, standardized = [], [] ,[]
         s, p, l = s.split(" "), p.split(" "),l.split(" ")
         for t, token in enumerate(s): 
             if token != ".": 
                 sentence.append(s[t])
                 pos.append(p[t])
-                lemmatized.append(l[t])
+                standardized.append(l[t])
             elif t-1 >= 0: 
                 sentence[-1] = sentence[-1] + "."
                 pos[-1] = pos[-1] + "." # indicates that the period at end of the word is a sentence boundary and its own token
-                lemmatized[-1] = lemmatized[-1] + "."
+                standardized[-1] = standardized[-1] + "."
 
         encoded = []
         in_italics, in_note = False, False 
@@ -74,7 +74,7 @@ def encode(tcpID):
                 if token == "NONLATINALPHABET": 
                     encoded.append((token, "foreign", token, it_tag, note_tag))
                 
-                encoded.append((token, pos[t], lemmatized[t], it_tag, note_tag))
+                encoded.append((token, pos[t], standardized[t], it_tag, note_tag))
 
         text_parts = []
         curr = []
