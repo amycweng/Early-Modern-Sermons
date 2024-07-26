@@ -2,6 +2,7 @@ import sys,csv,json
 sys.path.append('../')
 import pandas as pd 
 from lib.standardization import * 
+from tqdm import tqdm 
 
 # ERA = "pre-Elizabethan"
 FOLDER = '/Users/amycweng/DH/SERMONS_APP/db/data'
@@ -18,14 +19,12 @@ if __name__ == "__main__":
     
     formatted_citations = []
     for prefix in prefixes: 
-        done = {}
         body = pd.read_csv(f"{FOLDER}/{ERA}/{prefix}_body.csv",
                                 names = ["tcpID","sidx","section","loc","loc_type","pid","tokens","standardized"])
-        for idx, token_str in enumerate(body["tokens"]): 
+        progress = tqdm(enumerate(body["tokens"]))
+        for idx, token_str in progress: 
             tcpID = body["tcpID"][idx]
-            if tcpID not in done:
-                if len(done) > 0: print('Processed',tcpID) 
-                done[tcpID] = 0
+            progress.set_description(tcpID)
             sidx = body["sidx"][idx]
             cited, outliers, replaced = extract_citations(token_str)
             for cidx, c_list in cited.items(): 
@@ -42,14 +41,13 @@ if __name__ == "__main__":
         print('Processed',tcpID) 
         print(f'Processed {ERA} {prefix} texts')
         
-        done = {}
+
         marginalia = pd.read_csv(f"{FOLDER}/{ERA}/{prefix}_margin.csv"
                         , names = ["tcpID","sidx","nidx","tokens","standardized"])
-        for idx, token_str in enumerate(marginalia["tokens"]): 
+        progress = tqdm(enumerate(marginalia["tokens"]))
+        for idx, token_str in progress: 
             tcpID = marginalia["tcpID"][idx]
-            if tcpID not in done:
-                if len(done) > 0: print('Processed',tcpID) 
-                done[tcpID] = 0 
+            progress.set_description(tcpID+" marginalia") 
             sidx = marginalia["sidx"][idx]
             nidx = marginalia["nidx"][idx]
             cited, outliers, replaced = extract_citations(token_str)
@@ -63,8 +61,6 @@ if __name__ == "__main__":
                     'outlier': [None if cidx not in outliers else outliers[cidx]][0],
                     'replaced': replaced[cidx]
                 })
-        print('Processed',tcpID) 
-        print(f'Processed {ERA} {prefix} marginalia')
     
     with open(f"{FOLDER}/{ERA}/citations.csv","w+") as outfile: 
         writer = csv.DictWriter(outfile, fieldnames=formatted_citations[0].keys())

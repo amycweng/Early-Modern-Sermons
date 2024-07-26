@@ -4,7 +4,7 @@ sys.path.append('../')
 from lib.standardization import * 
 from lib.sentences import *
 import pandas as pd 
-
+from tqdm import tqdm 
 sermons_metadata = pd.read_csv("../assets/sermons.csv")
 sermons = sorted(sermons_metadata["id"])
 
@@ -21,8 +21,8 @@ def encode(tcpID):
 
     for sent_idx, tuple in enumerate(Text.sentences):
 
-        sermon_idx, start_page, paragraph, s, p, l = tuple 
-        info[sent_idx] = (sermon_idx, start_page, paragraph)
+        section_idx, start_page, paragraph, s, p, l = tuple 
+        info[sent_idx] = (section_idx, start_page, paragraph)
 
         sentence, pos, standardized = [], [] ,[]
         s, p, l = s.split(" "), p.split(" "),l.split(" ")
@@ -103,16 +103,13 @@ def process_prefix(tcpIDs,era,prefix):
     margins = {}
     texts = {}
     info = {}
-    progress = tcpIDs[0][:3] 
-    for tcpID in tcpIDs: 
+    progress = tqdm(tcpIDs)
+    for tcpID in progress:
+        progress.set_description(tcpID) 
         m, s, i = encode(tcpID)
         margins[tcpID] = m 
         texts[tcpID] = s
         info[tcpID] = i 
-        if tcpID[:3] != progress: 
-            progress = tcpID[:3]
-            print(progress)
-    print('finished all')
 
     with open(f"../assets/processed/{era}/json/{prefix}_marginalia.json","w+") as file: 
         json.dump(margins, file)
@@ -126,13 +123,17 @@ def process_prefix(tcpIDs,era,prefix):
         json.dump(info, file)
         print("wrote sentence info")
 
-
+import os 
 if __name__ == "__main__": 
+    already_adorned = os.listdir('../assets/adorned')
+    already_adorned = {k.split(".txt")[0]:None for k in already_adorned}
+
     with open('../assets/corpora.json','r') as file: 
         corpora = json.load(file)
     # era = "pre-Elizabethan"
     era = input('Enter subcorpus name: ')
     for prefix,tcpIDs in corpora[era].items():
         tcpIDs = sorted(tcpIDs)
+        tcpIDs = [tcpID for tcpID in tcpIDs if tcpID in already_adorned]
         if len(tcpIDs) == 0: continue
         process_prefix(tcpIDs,era, prefix)

@@ -12,21 +12,22 @@ class Sentences():
         with open(f"../assets/adorned/{self.tcpID}.txt","r") as file: 
             adorned = file.readlines()
         sentences = []
-        curr_sermon, curr_page, curr_paragraph = 0, None, 0
+        curr_section, curr_page, curr_paragraph = 0, None, 0
         curr_sentence = []
         curr_pos = []
-        curr_standard = []
+        curr_standard = [] # choose lemmas over standard spelling
         curr_in_note = False  
 
-        # tcpID, sermon, start_page, sent_idx, sentence, sentence_pos, sentence_lemmas   
+        # tcpID, section, start_page, sent_idx, sentence, sentence_pos, sentence_lemmas   
         for idx, item in enumerate(adorned): 
             
             parts = item.strip("\n").split("\t")
             if len(item) == 0: continue
 
             token, pos, standard, EOS = parts[0], parts[2], parts[3], parts[5]
-            if "^" in token: standard = token
-
+            if re.search(r"^I",standard) and re.search(r"^J",parts[4]): # compare standard with lemma 
+                # turn Iesus to Jesus 
+                standard = "J" + standard[1:] 
             def update(t,p,l): 
                 curr_sentence.append(t)
                 if not re.search("STARTITALICS|NONLATINALPHABET|ENDITALICS|STARTNOTE\d+|ENDNOTE\d+",t):
@@ -40,8 +41,8 @@ class Sentences():
                     curr_pos.append(t)
             
             if re.search(r"SECTION\d+",token):
-                # start of a new sermon in the text 
-                curr_sermon += 1 
+                # start of a new section in the text 
+                curr_section = token.split(":")[0].split("SECTION")[-1]
                 prev_known_page = None 
                 page_type = None 
                 idx_to_find_page = idx
@@ -91,7 +92,7 @@ class Sentences():
             elif re.search(r"PARAGRAPH\d+",token):
                 curr_paragraph += 1 
                 if len(curr_sentence) > 0: 
-                    sentences.append((curr_sermon, curr_page, curr_paragraph, 
+                    sentences.append((curr_section, curr_page, curr_paragraph, 
                                         " ".join(curr_sentence),
                                         " ".join(curr_pos),
                                         " ".join(curr_standard)))
@@ -106,13 +107,16 @@ class Sentences():
                     curr_in_note = True 
                 elif re.search(r"ENDNOTE\d+",token): 
                     # end of a note 
-                    curr_in_note = False
+                    curr_in_note = False 
 
                 if idx < len(adorned) -1: 
                     next = adorned[idx+1].split("\t")
-                    next_token, next_pos, next_lemma = next[0], next[2], next[4]
+                    next_token, next_pos, next_standard = next[0], next[2], next[3]
+                    if re.search(r"^I",next_standard) and re.search(r"^J",next[4]): # compare standard with lemma 
+                        # turn Iesus to Jesus 
+                        next_standard = "J" + next_standard[1:]  
                 else: 
-                    next_token, next_pos, next_lemma = "","",""
+                    next_token, next_pos, next_standard = "","",""
                     
                 # case of Israell2 Sam. 16.22 in A04389
                 if re.search(r"[\w\,\.]+\d+$",token) and not re.search("STARTITALICS|NONLATINALPHABET|ENDITALICS|STARTNOTE\d+|ENDNOTE\d+",token): 
@@ -137,9 +141,9 @@ class Sentences():
 
                 if EOS == "1":
                     if pos == "crd" and len(curr_sentence) == 1 and len(sentences) > 0: 
-                        serm,page,para,c,d,e = sentences[-1]
+                        section,page,para,c,d,e = sentences[-1]
                         if curr_paragraph == para: 
-                            sentences[-1] = (serm,page,para,
+                            sentences[-1] = (section,page,para,
                                             c+ " " + " ".join(curr_sentence),
                                             d + " " + " ".join(curr_pos),
                                             e + " " + " ".join(curr_standard))
@@ -155,7 +159,7 @@ class Sentences():
                     if re.search(r"ENDNOTE\d+",next_token): 
                         # case of a sentence boundary occuring within a note  
                         # do not end sentence 
-                        update(next_token, next_pos, next_lemma)
+                        update(next_token, next_pos, next_standard)
                         curr_in_note = False
                         adorned[idx+1] = ""
                     
@@ -174,24 +178,24 @@ class Sentences():
                             if re.search(r"ENDITALICS",next_token): 
                                 # case of a sentence boundary occuring within an italicized section 
                                 # "STARTITALICS <sentence> . ENDITALICS <next sentence>"
-                                update(next_token, next_pos, next_lemma)
+                                update(next_token, next_pos, next_standard)
                                 adorned[idx+1] = ""
                             
                             if (re.search(r"^[a-z0-9\^\.]",curr_sentence[0]))and len(sentences) > 0: 
-                                serm,page,para,c,d,e = sentences[-1]
+                                section,page,para,c,d,e = sentences[-1]
                                 if curr_paragraph == para: 
-                                    sentences[-1] = (serm,page,para,
+                                    sentences[-1] = (section,page,para,
                                                     c+ " " + " ".join(curr_sentence),
                                                     d + " " + " ".join(curr_pos),
                                                     e + " " + " ".join(curr_standard))
                                 else: 
-                                    sentences.append((curr_sermon, curr_page, curr_paragraph, 
+                                    sentences.append((curr_section, curr_page, curr_paragraph, 
                                                     " ".join(curr_sentence),
                                                     " ".join(curr_pos),
                                                     " ".join(curr_standard)))
                             
                             elif len(sentences) > 0:                    
-                                serm,page,para,c,d,e = sentences[-1]
+                                section,page,para,c,d,e = sentences[-1]
                                 end_with_crd, end_with_it, end_with_single = False, False, False
                                 if len(d.split(" ")) >= 2: 
                                     if re.search(r"crd|\^[\.]*",d.split(" ")[-1]) or re.search(r"crd|\^[\.]*",d.split(" ")[-2]):
@@ -202,17 +206,17 @@ class Sentences():
                                     if re.search(r"ENDITALICS",c.split(" ")[-1]): 
                                         end_with_it = True
                                 if curr_paragraph == para and (end_with_crd or end_with_it or end_with_single):
-                                    sentences[-1] = (serm,page,para,
+                                    sentences[-1] = (section,page,para,
                                                     c+ " " + " ".join(curr_sentence),
                                                     d + " " + " ".join(curr_pos),
                                                     e + " " + " ".join(curr_standard))
                                 else: 
-                                    sentences.append((curr_sermon, curr_page, curr_paragraph, 
+                                    sentences.append((curr_section, curr_page, curr_paragraph, 
                                                     " ".join(curr_sentence),
                                                     " ".join(curr_pos),
                                                     " ".join(curr_standard)))
                             else: 
-                                sentences.append((curr_sermon, curr_page, curr_paragraph, 
+                                sentences.append((curr_section, curr_page, curr_paragraph, 
                                                 " ".join(curr_sentence),
                                                 " ".join(curr_pos),
                                                 " ".join(curr_standard)))

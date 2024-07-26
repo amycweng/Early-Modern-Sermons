@@ -71,10 +71,10 @@ def extract(tcpID, filepath):
     #             "scaffold speech","speech","lamentation","essay","theological discourse",
     #             "memorial","consolatio","religious tract","oration and sermon","hymns",
     #             "vindication","scripture","criticism","observation","mock sermon"]
-        if re.search("sermon|speech|oratio|homil|eulog|lectures|encomi|exhortation",section_type): 
+        if re.search(r"sermon|speech|oratio|homil|eulog|lecture|encomi|exhortation|memorial|consolatio",section_type): 
             num_sermons += 1 
             body_text.append(text)
-        elif re.search("part|text|treatise|doctrine|book|conclusion|polemic|lamentation|essay|discourse|tract|criticism|response|animadversion|observation|disputation|allegations|extract|exposition|refutation|discourse|examination|comment|remarks|panegyric|censure|analysis|volume|articles",section_type): 
+        elif re.search(r"part|text|treatise|doctrine|book|conclusion|polemic|lamentation|essay|discourse|tract|criticism|response|animadversion|observation|disputation|allegations|extract|exposition|refutation|discourse|examination|comment|remarks|panegyric|censure|analysis|volume|articles|chapter|errata|typological_category|section",section_type): 
             body_text.append(text)
         # doc_text.append(text)
     # with open(f"../assets/plain_all/{tcpID}.txt","w+") as file:

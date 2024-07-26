@@ -1,5 +1,5 @@
 import json,csv 
-import sys
+import sys,re
 sys.path.append('../')
 
 class Sermons():
@@ -80,7 +80,8 @@ class Sermons():
                   if len(token) == 0: continue
                   tokens.append(token)
                   
-                  current.append(standard_spelling)
+                  if token != "<NOTE>": 
+                    current.append(standard_spelling)
 
                   if 'fw' in pos: # foreign words
                       fw.append(fw_idx)
@@ -161,6 +162,12 @@ if __name__ == "__main__":
         with open(f"../assets/processed/{era}/json/{prefix}_info.json") as file: 
             info = json.load(file)
 
+        def combine_punc_with_text(segment): 
+            segment = re.sub(r'\s+([,.?!;:)])', r'\1', segment)
+            segment = re.sub(r'([(])\s+', r'\1', segment) 
+            segment = re.sub(r"\s+"," ",segment)
+            return segment 
+
         for key, segment in tokenized.items():
             key = key.split(",")
             tcpID = key[0]
@@ -181,8 +188,8 @@ if __name__ == "__main__":
                     'loc': [i[1].split(loc_type)[-1] if loc_type is not None else None][0], 
                     'loc_type': loc_type, 
                     'pid': i[2], 
-                    'tokens': segment, 
-                    'standardized': standardized[",".join(key)]
+                    'tokens': combine_punc_with_text(segment), 
+                    'standardized': combine_punc_with_text(standardized[",".join(key)])
                 })
             else: 
                 for nid, part in segment.items(): 
@@ -190,8 +197,8 @@ if __name__ == "__main__":
                         'tcpID': tcpID,
                         'sid': key[1],
                         'nid': nid,
-                        'tokens': segment[nid], 
-                        'standardized': standardized[",".join(key)][nid]
+                        'tokens': combine_punc_with_text(segment[nid]), 
+                        'standardized': combine_punc_with_text(standardized[",".join(key)][nid])
                     })
         
         if len(body_formatted) == 0: continue
