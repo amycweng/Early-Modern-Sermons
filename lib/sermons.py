@@ -143,74 +143,73 @@ if __name__ == "__main__":
     with open('../assets/corpora.json','r') as file: 
         corpora = json.load(file)
 
-    # era = "pre-Elizabethan"
-    era = input('Enter subcorpus name: ')
+    # era = input('Enter subcorpus name: ')
+    for era in corpora: 
+        for prefix,tcpIDs in corpora[era].items():
+            print(era,prefix)
+            if len(tcpIDs) == 0: continue
 
-    for prefix,tcpIDs in corpora[era].items():
-        print(prefix)
-        if len(tcpIDs) == 0: continue
+            tcpIDs = sorted(tcpIDs)
+            seen = {}
+            corpus = Sermons(era,prefix)
+            body_formatted = []
+            margins_formatted = []
 
-        tcpIDs = sorted(tcpIDs)
-        seen = {}
-        corpus = Sermons(era,prefix)
-        body_formatted = []
-        margins_formatted = []
+            tokenized = corpus.get_chunks(corpus.tokens)
+            standardized = corpus.get_chunks(corpus.standard)
 
-        tokenized = corpus.get_chunks(corpus.tokens)
-        standardized = corpus.get_chunks(corpus.standard)
+            with open(f"../assets/processed/{era}/json/{prefix}_info.json") as file: 
+                info = json.load(file)
 
-        with open(f"../assets/processed/{era}/json/{prefix}_info.json") as file: 
-            info = json.load(file)
+            def combine_punc_with_text(segment): 
+                segment = re.sub(r'\s+([,.?!;:)])', r'\1', segment)
+                segment = re.sub(r'([(])\s+', r'\1', segment) 
+                segment = re.sub(r"\s+"," ",segment)
+                return segment 
 
-        def combine_punc_with_text(segment): 
-            segment = re.sub(r'\s+([,.?!;:)])', r'\1', segment)
-            segment = re.sub(r'([(])\s+', r'\1', segment) 
-            segment = re.sub(r"\s+"," ",segment)
-            return segment 
+            for key, segment in tokenized.items():
+                key = key.split(",")
+                tcpID = key[0]
+                if tcpID not in seen: 
+                    nidx = 0
+                    seen[tcpID] = True 
 
-        for key, segment in tokenized.items():
-            key = key.split(",")
-            tcpID = key[0]
-            if tcpID not in seen: 
-                nidx = 0
-                seen[tcpID] = True 
+                i = info[key[0]][key[1]]
+                if i[1] is None: loc_type = None
+                elif 'IMAGE' in i[1]: loc_type = "IMAGE"
+                else: loc_type = "PAGE"
 
-            i = info[key[0]][key[1]]
-            if i[1] is None: loc_type = None
-            elif 'IMAGE' in i[1]: loc_type = "IMAGE"
-            else: loc_type = "PAGE"
-
-            if key[-1] == 'False':
-                body_formatted.append({
-                    'tcpID': tcpID,
-                    'sid': key[1],
-                    'section': i[0],
-                    'loc': [i[1].split(loc_type)[-1] if loc_type is not None else None][0], 
-                    'loc_type': loc_type, 
-                    'pid': i[2], 
-                    'tokens': combine_punc_with_text(segment), 
-                    'standardized': combine_punc_with_text(standardized[",".join(key)])
-                })
-            else: 
-                for nid, part in segment.items(): 
-                    margins_formatted.append({
+                if key[-1] == 'False':
+                    body_formatted.append({
                         'tcpID': tcpID,
                         'sid': key[1],
-                        'nid': nid,
-                        'tokens': combine_punc_with_text(segment[nid]), 
-                        'standardized': combine_punc_with_text(standardized[",".join(key)][nid])
+                        'section': i[0],
+                        'loc': [i[1].split(loc_type)[-1] if loc_type is not None else None][0], 
+                        'loc_type': loc_type, 
+                        'pid': i[2], 
+                        'tokens': combine_punc_with_text(segment), 
+                        'standardized': combine_punc_with_text(standardized[",".join(key)])
                     })
-        
-        if len(body_formatted) == 0: continue
+                else: 
+                    for nid, part in segment.items(): 
+                        margins_formatted.append({
+                            'tcpID': tcpID,
+                            'sid': key[1],
+                            'nid': nid,
+                            'tokens': combine_punc_with_text(segment[nid]), 
+                            'standardized': combine_punc_with_text(standardized[",".join(key)][nid])
+                        })
+            
+            if len(body_formatted) == 0: continue
 
-        with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_body.csv','w+') as file: 
-            writer = csv.DictWriter(file, fieldnames=body_formatted[0].keys())
-            writer.writerows(body_formatted)
-            print(f'{prefix} body done')
-        with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_margin.csv','w+') as file: 
-            writer = csv.DictWriter(file, fieldnames=['tcpID','sid','nid','tokens','standardized'])
-            writer.writerows(margins_formatted)
-            print(f'{prefix} marginalia done')
+            with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_body.csv','w+') as file: 
+                writer = csv.DictWriter(file, fieldnames=body_formatted[0].keys())
+                writer.writerows(body_formatted)
+                print(f'{prefix} body done')
+            with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_margin.csv','w+') as file: 
+                writer = csv.DictWriter(file, fieldnames=['tcpID','sid','nid','tokens','standardized'])
+                writer.writerows(margins_formatted)
+                print(f'{prefix} marginalia done')
 
-        with open(f'../assets/processed/{era}/sub-segments/{prefix}.json','w+') as file: 
-            json.dump([corpus.sent_id,corpus.standard,corpus.fw_subchunks],file)
+            with open(f'../assets/processed/{era}/sub-segments/{prefix}.json','w+') as file: 
+                json.dump([corpus.sent_id,corpus.standard,corpus.fw_subchunks],file)

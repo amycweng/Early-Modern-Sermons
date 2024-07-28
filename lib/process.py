@@ -105,7 +105,7 @@ def process_prefix(tcpIDs,era,prefix):
     info = {}
     progress = tqdm(tcpIDs)
     for tcpID in progress:
-        progress.set_description(tcpID) 
+        progress.set_description(era + " " + tcpID) 
         m, s, i = encode(tcpID)
         margins[tcpID] = m 
         texts[tcpID] = s
@@ -130,10 +130,11 @@ if __name__ == "__main__":
 
     with open('../assets/corpora.json','r') as file: 
         corpora = json.load(file)
-    # era = "pre-Elizabethan"
-    era = input('Enter subcorpus name: ')
-    for prefix,tcpIDs in corpora[era].items():
-        tcpIDs = sorted(tcpIDs)
-        tcpIDs = [tcpID for tcpID in tcpIDs if tcpID in already_adorned]
-        if len(tcpIDs) == 0: continue
-        process_prefix(tcpIDs,era, prefix)
+    
+    # era = input('Enter subcorpus name: ')
+    for era in corpora: 
+        for prefix,tcpIDs in corpora[era].items():
+            tcpIDs = sorted(tcpIDs)
+            tcpIDs = [tcpID for tcpID in tcpIDs if tcpID in already_adorned]
+            if len(tcpIDs) == 0: continue
+            process_prefix(tcpIDs,era, prefix)
