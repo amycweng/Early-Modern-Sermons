@@ -1,6 +1,13 @@
-import json,csv 
+import json,csv
 import sys,re
 sys.path.append('../')
+from lib.spelling import standardizer 
+
+def combine_punc_with_text(segment): 
+    segment = re.sub(r'\s+([,.?!;:)])', r'\1', segment)
+    segment = re.sub(r'([(])\s+', r'\1', segment) 
+    segment = re.sub(r"\s+"," ",segment)
+    return segment
 
 class Sermons():
     def __init__(self, era, prefix):
@@ -70,38 +77,57 @@ class Sermons():
                   s_idx = int(s_idx)
                   sid = (tcpID,s_idx,-1)
 
-              fw = [] # contains indices of the foreign words
-              fw_idx = 0
+              fw = [] # contains indices of the foreign tokens
+              fw_idx = 0  
 
               for idx, x in enumerate(encodings):
                   segment = False
 
                   token, pos, standard_spelling = x[0], x[1], x[2]
                   if len(token) == 0: continue
+                  if len(standard_spelling) == 0: continue
                   tokens.append(token)
                   
-                  if token != "<NOTE>": 
+                  # standardize spelling 
+                  if token != "<NOTE>" and token != "NONLATINALPHABET" and not re.search("\<i\>|\<\/i\>",token): 
+                    all_caps, caps = False, False
+                    if standard_spelling.isupper() and len(standard_spelling.strip(".")) > 1: # all uppercase 
+                        all_caps = True 
+                    elif standard_spelling[0].isupper(): # capitalized  
+                        caps = True 
+                    # strip ending punctuation 
+                    if standard_spelling.strip(".").lower() in standardizer:
+                        s =  standardizer[standard_spelling.strip(".").lower()]
+                        if all_caps: 
+                            standard_spelling = "".join([l.capitalize() for l in s])
+                        elif caps: 
+                            standard_spelling = s.capitalize()
+                        else: 
+                            standard_spelling = s 
+                    
                     current.append(standard_spelling)
 
                   if 'fw' in pos: # foreign words
                       fw.append(fw_idx)
-                  fw_idx +=1
+                  fw_idx += 1 
 
-                  if "." in pos or ';' in pos or ':' in pos or '?' in pos:
+                  if re.search(r"\;|\?|\!|\/|\:",token) and not re.search("\<i\>|\<\/i\>",token): 
                       segment = True
                   elif "." in token:
-                      if (idx+1) < len(encodings):
-                        if len(encodings[idx+1][0]) == 0: continue
-                        if encodings[idx+1][0][0].isupper(): # case of "L. 6 17. By faith Noah"
-                            segment = True
+                      if token[0].isupper(): continue
+                      segment = True 
+                    #   if (idx+1) < len(encodings):
+                    #     if len(encodings[idx+1][0]) == 0: continue
+                    #     if encodings[idx+1][0][0].isupper(): # case of "L. 6 17. By faith Noah"
+                    #         segment = True
 
-                  def check_foreign(fw):
+                  def check_foreign(fw): # at least three consecutive foreign words 
                       consec = 1
                       for i in range(len(fw) - 1):
                           if fw[i] + 1 == fw[i + 1]:
                               consec += 1
                               if consec == 3:
-                                  return True
+                                return True
                           else:
                               consec = 1
                       return False
@@ -111,7 +137,9 @@ class Sermons():
                       self.sent_id.append((sid,part_id))
                       self.tokens.append(" ".join(tokens))
                       if check_foreign(fw):
-                          self.fw_subchunks[f"{sid[0]},{sid[1]},{sid[2]},{part_id}"] = fw
+                          fid = [str(s) for s in sid]
+                          fid = [fid,str(part_id)]
+                          self.fw_subchunks[str(fid)] = fw  
 
                       current = []
                       tokens = []
@@ -146,12 +174,12 @@ if __name__ == "__main__":
     # era = input('Enter subcorpus name: ')
     for era in corpora: 
         for prefix,tcpIDs in corpora[era].items():
-            print(era,prefix)
             if len(tcpIDs) == 0: continue
-
+            print(era,prefix)
             tcpIDs = sorted(tcpIDs)
             seen = {}
             corpus = Sermons(era,prefix)
+
             body_formatted = []
             margins_formatted = []
 
@@ -160,12 +188,7 @@ if __name__ == "__main__":
 
             with open(f"../assets/processed/{era}/json/{prefix}_info.json") as file: 
                 info = json.load(file)
-
-            def combine_punc_with_text(segment): 
-                segment = re.sub(r'\s+([,.?!;:)])', r'\1', segment)
-                segment = re.sub(r'([(])\s+', r'\1', segment) 
-                segment = re.sub(r"\s+"," ",segment)
-                return segment 
+ 
 
             for key, segment in tokenized.items():
                 key = key.split(",")

@@ -37,33 +37,25 @@ def encode(tcpID):
                 standardized[-1] = standardized[-1] + "."
 
         encoded = []
-        in_italics, in_note = False, False 
-        start_italics, start_note = False, False
-
+        start_note, in_note = False, False 
+        note_tag = 0 
         t = -1  
         for token in sentence: 
             if token == ".": continue 
             
             t += 1 
-            
-            if token == "STARTITALICS": 
-                in_italics, start_italics = True, True  
-            elif token == "ENDITALICS": 
-                in_italics = False 
-            elif re.search(r"STARTNOTE\d+", token):
+             
+            if re.search(r"STARTNOTE\d+", token):
                 # add a placeholder to retain the note's position in the text 
-                encoded.append((f'<NOTE>',"NOTE",f'<NOTE>',0,0))
+                encoded.append(('<NOTE>',"NOTE",'<NOTE>',0))
                 in_note, start_note = True, True 
             elif re.search(r"ENDNOTE\d+",token): 
                 in_note = False
+            elif token == "STARTITALICS": 
+                encoded.append(('<i>',"<i>",'<i>',note_tag)) 
+            elif token == "ENDITALICS": 
+                encoded.append(('</i>',"</i>",'</i>',note_tag))
             else:
-                if start_italics:
-                    it_tag, start_italics = 1, False
-                elif in_italics: 
-                    it_tag = 2
-                else: 
-                    it_tag = 0
-                
                 if start_note:
                     note_tag, start_note = 1, False
                 elif in_note: 
@@ -72,9 +64,9 @@ def encode(tcpID):
                     note_tag = 0
                 
                 if token == "NONLATINALPHABET": 
-                    encoded.append((token, "foreign", token, it_tag, note_tag))
+                    encoded.append((token, "foreign", token, note_tag))
                 
-                encoded.append((token, pos[t], standardized[t], it_tag, note_tag))
+                encoded.append((token, pos[t], standardized[t], note_tag))
 
         text_parts = []
         curr = []

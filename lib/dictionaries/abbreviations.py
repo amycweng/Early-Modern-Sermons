@@ -52,7 +52,7 @@ abbrev = {
         'bar',
         'bar^ch',
         'bart',
-        'baru',
+        'baru',  
         'baru^',
         'baruc',
         'baruch',
@@ -132,7 +132,9 @@ abbrev = {
         'paralip',
         'parali',
         'paral',
-        'para'
+        'para',
+        'paralipomenon',
+        'paralipo'
     ],
     'colossians':
     [

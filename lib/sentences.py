@@ -12,6 +12,7 @@ class Sentences():
         with open(f"../assets/adorned/{self.tcpID}.txt","r") as file: 
             adorned = file.readlines()
         sentences = []
+        skip = [] # "SECTION3:homily" became "SECTION3 : homily"
         curr_section, curr_page, curr_paragraph = 0, None, 0
         curr_sentence = []
         curr_pos = []
@@ -23,6 +24,9 @@ class Sentences():
             
             parts = item.strip("\n").split("\t")
             if len(item) == 0: continue
+            if idx in skip: continue
+            if item == "_" and (idx-1) in skip: 
+                skip.append(idx+1)
 
             token, pos, standard, EOS = parts[0], parts[2], parts[3], parts[5]
             if re.search(r"^I",standard) and re.search(r"^J",parts[4]): # compare standard with lemma 
@@ -43,6 +47,8 @@ class Sentences():
             if re.search(r"SECTION\d+",token):
                 # start of a new section in the text 
                 curr_section = token.split(":")[0].split("SECTION")[-1]
+                skip = [idx+1, idx+2]
+
                 prev_known_page = None 
                 page_type = None 
                 idx_to_find_page = idx

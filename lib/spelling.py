@@ -1,17 +1,18 @@
 import os, json,re
+standardizer = {} # conversion dictionary 
 
 # morphadorner 
 with open("/Users/amycweng/DH/morphadorner-2/data/standardspellings.txt","r") as file: 
     standard = file.readlines()
-standard = {x.strip("\n"):None for x in standard}
+standard = {x.strip("\n"):None for x in standard} # known spellings 
 
 # standardized with GPT 3.5 
 for fp in os.listdir('../assets/vocab'):
     if "standard" not in fp: continue
     with open(f"../assets/vocab/{fp}") as file: 
         new_standard = json.load(file)
-        new_standard = {n.lower():None for n in new_standard}
-        standard.update(new_standard)
+        standardizer.update({n.lower():k for n,k in new_standard.items()})
+        standard.update({n.lower():None for n in new_standard})
 
 # Biblical entities 
 with open(f"../assets/bible/TIPNR - Translators Individualised Proper Names with all References - STEPBible.org CC BY.txt") as file: 
@@ -86,4 +87,4 @@ from nltk.corpus import wordnet as wn
 wordnet_words = set(wn.words())
 standard.update({w.lower():None for w in wordnet_words})
 standard = {s:None for s in standard if not re.search("\d",s)}
-print(f"{len(standard)} known spellings")
+print(f"{len(standardizer)} corrected spellings")

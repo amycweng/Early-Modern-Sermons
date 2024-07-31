@@ -13,6 +13,7 @@ if __name__ == "__main__":
         corpora = json.load(file)
 
     for ERA in corpora: 
+        if ERA not in ["CharlesII","JamesII","WilliamAndMary"]: continue
         prefixes = []
         for prefix,ids in corpora[ERA].items(): 
             if len(ids) > 0: prefixes.append(prefix)

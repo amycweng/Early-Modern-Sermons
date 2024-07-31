@@ -18,8 +18,8 @@ def extract_citations(n):
         for item, ref in match:
             orig_item = item 
 
-            if re.search(r"ch \d+ v|\d+ ch \d+|\&c", item): 
-                item = re.sub(r"ch|v|\&c", '',item)
+            if re.search(r"\bch \d+ v|\d+ \bch\b \d+|\&c", item): 
+                item = re.sub(r"\bch\b|\bv\b|\&c", '',item)
                 item = re.sub(r"\s+"," ",item)
             item = re.sub(r"([^0-9a-z\*\^])+$","",item.lower()) # remove trailing characters
 
@@ -71,7 +71,7 @@ def extract_citations(n):
 
 def clean_text(n): 
     # remove everything that is not an alphabetical character, integer, comma, ampersand, hyphen, asterisk, period, apostrophe or a single space
-    n = re.sub(r'[^\w\d\,\&\-\—\*\(\)\^\.\'\"\: ]','',n)
+    n = re.sub(r'[^\w\d\,\&\-\—\*\(\)\^\.\'\"\: ]','',str(n))
     # strip out periods and colons 
     n = re.sub(r"\.|\:", " ",n)
     # strip away letters indicating verse or chapter, as well as the phrase 'of Sol' which follows 'Song' or 'Wisdom'
