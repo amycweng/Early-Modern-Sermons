@@ -111,6 +111,8 @@ class Sermons():
                       fw.append(fw_idx)
                   fw_idx += 1 
 
+
+                  # SEGMENTATION 
                   if re.search(r"\;|\?|\!|\/|\:",token) and not re.search("\<i\>|\<\/i\>",token): 
                       segment = True
                   elif "." in token:
@@ -133,7 +135,7 @@ class Sermons():
                       return False
 
                   if segment or (idx == (len(encodings)-1)):
-                      self.standard.append(" ".join(current))
+                      self.standard.append((" ".join(current)))
                       self.sent_id.append((sid,part_id))
                       self.tokens.append(" ".join(tokens))
                       if check_foreign(fw):
@@ -225,14 +227,14 @@ if __name__ == "__main__":
             
             if len(body_formatted) == 0: continue
 
-            with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_body.csv','w+') as file: 
-                writer = csv.DictWriter(file, fieldnames=body_formatted[0].keys())
-                writer.writerows(body_formatted)
-                print(f'{prefix} body done')
-            with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_margin.csv','w+') as file: 
-                writer = csv.DictWriter(file, fieldnames=['tcpID','sid','nid','tokens','standardized'])
-                writer.writerows(margins_formatted)
-                print(f'{prefix} marginalia done')
+            # with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_body.csv','w+') as file: 
+            #     writer = csv.DictWriter(file, fieldnames=body_formatted[0].keys())
+            #     writer.writerows(body_formatted)
+            #     print(f'{prefix} body done')
+            # with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_margin.csv','w+') as file: 
+            #     writer = csv.DictWriter(file, fieldnames=['tcpID','sid','nid','tokens','standardized'])
+            #     writer.writerows(margins_formatted)
+            #     print(f'{prefix} marginalia done')
 
             with open(f'../assets/processed/{era}/sub-segments/{prefix}.json','w+') as file: 
-                json.dump([corpus.sent_id,corpus.standard,corpus.fw_subchunks],file)
+                json.dump([corpus.sent_id,corpus.standard,corpus.tokens,corpus.fw_subchunks],file)

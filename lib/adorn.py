@@ -33,29 +33,3 @@ if __name__ == "__main__":
 #     XXII	XXII	np1	XXII	Xxii	0
 #     .	.	.	.	.	1
 #     XXX.XXXI	XXX.XXXI	np1	XXX.XXXI	XXX.XXXI	0
-def bible(): 
-    import pandas as pd 
-    import sys,re 
-    sys.path.append('../')
-    data = pd.read_csv("../assets/bible/kjv.csv")
-    doc_id = data['doc_id']
-    text = data['text']
-    plaintext = []
-    for idx, d_id in enumerate(doc_id): 
-        d_id = d_id.strip(" (KJV)")
-        d_id = re.sub(":","-",d_id)
-        d_id = "-".join(d_id.split(" "))
-        d_id = f"VERSE-{d_id}"
-        plaintext.append(f"{d_id} {text[idx]}")
-
-    plaintext = " ".join(plaintext)
-    with open("../assets/kjv.txt","w+") as file: 
-        file.write(plaintext)
-
-def adornbible(): 
-    repo = '/Users/amycweng/DH/Early-Modern-Sermons' # github repo 
-    os.chdir('/Users/amycweng/DH/morphadorner-2')
-    subprocess.run(['./adornplainemetext', f"{repo}/assets", f"{repo}/assets/kjv.txt"])
-
-# bible()
-# adornbible()

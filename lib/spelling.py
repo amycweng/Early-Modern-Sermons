@@ -15,7 +15,7 @@ for fp in os.listdir('../assets/vocab'):
         standard.update({n.lower():None for n in new_standard})
 
 # Biblical entities 
-with open(f"../assets/bible/TIPNR - Translators Individualised Proper Names with all References - STEPBible.org CC BY.txt") as file: 
+with open(f"../assets/misc/TIPNR - Translators Individualised Proper Names with all References - STEPBible.org CC BY.txt") as file: 
     data = file.readlines()
 in_entities_section = False
 entities = []
@@ -80,11 +80,11 @@ for name_list in author_ids.values():
         for n in name.split(" "): 
             standard[n.lower()] = None
 
-standard = {s:None for s in standard if not re.search("\d",s)}
-
 # nltk.download('wordnet')
+import math
 from nltk.corpus import wordnet as wn
 wordnet_words = set(wn.words())
 standard.update({w.lower():None for w in wordnet_words})
-standard = {s:None for s in standard if not re.search("\d",s)}
+standard = {s.lower():None for s in standard if not re.search("\d",s) and (len(re.findall("\^",s)) < math.floor(len(s)/2))}
+standardizer = {k.lower():v for k,v in standardizer.items() if len(k) > 1 and len(v) > 1 and not re.search("\d",k) and (len(re.findall("\^",k)) < math.floor(len(k)/2))}
 print(f"{len(standardizer)} corrected spellings")

@@ -57,6 +57,7 @@ def get_citations(citations, tcpIDs, loc="all"):
     all_chapters = {}
     all_verses = {}
     segment_ids = {}
+    segment_ids_c = {} # associated with chapter citations only 
     for cid,cited in citations.items(): 
         tcpID, sidx = cid 
         if tcpID not in tcpIDs: continue
@@ -98,9 +99,18 @@ def get_citations(citations, tcpIDs, loc="all"):
                             segment_ids[key] = []
                         all_verses[key].append(tcpID)
                         segment_ids[key].append(f"{tcpID},{sidx}")
+                else: 
+                    key = f"{book}-{chapter}" 
+                    if key not in segment_ids_c: 
+                        segment_ids_c[key] = []
+                    segment_ids_c[key].append(f"{tcpID},{sidx}")
     with open(f'../assets/citations/{era_name}_verse_citation_segments.json','w+') as file: 
         json.dump(segment_ids,file)
+    with open(f'../assets/citations/{era_name}_chapter_citation_segments.json','w+') as file: 
+        json.dump(segment_ids_c,file)
+    print(era_name)
     print("{} labels and {} verse citations".format(len(segment_ids),sum([len(_) for c, _ in segment_ids.items()])))
+    print("{} labels and {} chapter citations".format(len(segment_ids_c),sum([len(_) for c, _ in segment_ids_c.items()])))
     return all_books, all_chapters, all_verses
 
 def count_citations(c,v): # chapter and verse citations only 
