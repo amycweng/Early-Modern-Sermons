@@ -20,7 +20,7 @@ def encode(tcpID):
     info = {}
 
     for sent_idx, tuple in enumerate(Text.sentences):
-
+        
         section_idx, start_page, paragraph, s, p, l = tuple 
         info[sent_idx] = (section_idx, start_page, paragraph)
 

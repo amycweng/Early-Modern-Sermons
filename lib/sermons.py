@@ -1,5 +1,6 @@
 import json,csv
 import sys,re
+import pandas as pd 
 sys.path.append('../')
 from lib.spelling import standardizer 
 
@@ -63,8 +64,21 @@ class Sermons():
         print('Processed texts')
 
     def create_corpus(self, data,is_margin=False):
-      for tcpID, items in data.items():          
+      def check_foreign(fw): # at least three consecutive foreign words 
+        consec = 1
+        for i in range(len(fw) - 1):
+            if fw[i] + 1 == fw[i + 1]:
+                consec += 1
+                if consec == 3:
+                    return True
+            else:
+                consec = 1
+        return False
+      
+      for tcpID, items in data.items():    
+      
           for s_idx, encodings in items.items():
+              never_segmented = True 
               current = []
               tokens = []
               part_id = 0
@@ -76,6 +90,7 @@ class Sermons():
               else:
                   s_idx = int(s_idx)
                   sid = (tcpID,s_idx,-1)
+
 
               fw = [] # contains indices of the foreign tokens
               fw_idx = 0  
@@ -118,23 +133,11 @@ class Sermons():
                   elif "." in token:
                       if token[0].isupper(): continue
                       segment = True 
-                    #   if (idx+1) < len(encodings):
-                    #     if len(encodings[idx+1][0]) == 0: continue
-                    #     if encodings[idx+1][0][0].isupper(): # case of "L. 6 17. By faith Noah"
-                    #         segment = True
+                  
+                  if segment: never_segmented = False 
+                  
 
-                  def check_foreign(fw): # at least three consecutive foreign words 
-                      consec = 1
-                      for i in range(len(fw) - 1):
-                          if fw[i] + 1 == fw[i + 1]:
-                              consec += 1
-                              if consec == 3:
-                                return True
-                          else:
-                              consec = 1
-                      return False
-
-                  if segment or (idx == (len(encodings)-1)):
+                  if segment:
                       self.standard.append((" ".join(current)))
                       self.sent_id.append((sid,part_id))
                       self.tokens.append(" ".join(tokens))
@@ -149,6 +152,15 @@ class Sermons():
 
                       fw_idx = 0
                       part_id += 1
+              
+              if never_segmented: 
+                self.standard.append((" ".join(current)))
+                self.sent_id.append((sid,part_id))
+                self.tokens.append(" ".join(tokens))
+                if check_foreign(fw):
+                    fid = [str(s) for s in sid]
+                    fid = [fid,str(part_id)] 
+                    self.fw_subchunks[str(fid)] = fw
     
     def get_chunks(self, targets):
       chunks = {} # keys are just (tcpID, chunk idx, is_note)
@@ -174,8 +186,9 @@ if __name__ == "__main__":
         corpora = json.load(file)
 
     # era = input('Enter subcorpus name: ')
-    for era in corpora: 
+    for era in corpora:
         for prefix,tcpIDs in corpora[era].items():
+
             if len(tcpIDs) == 0: continue
             print(era,prefix)
             tcpIDs = sorted(tcpIDs)
@@ -190,11 +203,12 @@ if __name__ == "__main__":
 
             with open(f"../assets/processed/{era}/json/{prefix}_info.json") as file: 
                 info = json.load(file)
- 
+
 
             for key, segment in tokenized.items():
                 key = key.split(",")
                 tcpID = key[0]
+                
                 if tcpID not in seen: 
                     nidx = 0
                     seen[tcpID] = True 
@@ -226,15 +240,16 @@ if __name__ == "__main__":
                         })
             
             if len(body_formatted) == 0: continue
+            
+            with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_body.csv','w+') as file: 
+                writer = csv.DictWriter(file, fieldnames=body_formatted[0].keys())
+                writer.writerows(body_formatted)
+                print(f'{prefix} body done')
 
-            # with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_body.csv','w+') as file: 
-            #     writer = csv.DictWriter(file, fieldnames=body_formatted[0].keys())
-            #     writer.writerows(body_formatted)
-            #     print(f'{prefix} body done')
-            # with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_margin.csv','w+') as file: 
-            #     writer = csv.DictWriter(file, fieldnames=['tcpID','sid','nid','tokens','standardized'])
-            #     writer.writerows(margins_formatted)
-            #     print(f'{prefix} marginalia done')
+            with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_margin.csv','w+') as file: 
+                writer = csv.DictWriter(file, fieldnames=['tcpID','sid','nid','tokens','standardized'])
+                writer.writerows(margins_formatted)
+                print(f'{prefix} marginalia done')
 
             with open(f'../assets/processed/{era}/sub-segments/{prefix}.json','w+') as file: 
                 json.dump([corpus.sent_id,corpus.standard,corpus.tokens,corpus.fw_subchunks],file)
