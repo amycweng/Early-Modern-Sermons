@@ -10,6 +10,10 @@ def read_citations(era_name):
     citation_info = pd.read_csv(f"/Users/amycweng/DH/SERMONS_APP/db/data/{era_name}/citations.csv",
                             names=['tcpID',"sidx","loc","cidx","citation","outlier","replaced"]
                             )
+    missing_citations = pd.read_csv(f"/Users/amycweng/DH/SERMONS_APP/db/data/{era_name}/citations_missing.csv",
+                            names=['tcpID',"sidx","loc","cidx","citation","outlier","replaced"]
+                            )
+    citation_info = pd.concat([citation_info,missing_citations],ignore_index=True)
 
     citations = {}
     tcpIDs = citation_info['tcpID']
@@ -21,34 +25,34 @@ def read_citations(era_name):
             prefix = tcpID[:2]
         if tcpID not in era_ids[prefix]: continue
         sidx = citation_info['sidx'][idx]
-
+        
         if (tcpID,sidx) not in citations:     
             citations[(tcpID,sidx)] = [[],[]]
-        else: 
-            decomposed = citation_info['citation'][idx]
-            if isinstance(decomposed,float): continue
-            decomposed = decomposed.split("; ")
-            book = decomposed[0].split(" ")[0]
-            if book == "Ibidem" and len(citations[(tcpID,sidx)][0]) > 0: 
-                # address ibidem problem; still need to address the verse/ver problem 
-                prior = citations[(tcpID,sidx)][0][-1].split(" ")
-                if re.search(r"\d|\^",prior[0]): 
-                    book = prior[0] + " " + prior[1]
+
+        decomposed = citation_info['citation'][idx]
+        if isinstance(decomposed,float): continue
+        decomposed = decomposed.split("; ")
+        book = decomposed[0].split(" ")[0]
+        if book == "Ibidem" and len(citations[(tcpID,sidx)][0]) > 0: 
+            # address ibidem problem; still need to address the verse/ver problem 
+            prior = citations[(tcpID,sidx)][0][-1].split(" ")
+            if re.search(r"\d|\^",prior[0]): 
+                book = prior[0] + " " + prior[1]
+            else: 
+                book = prior[0] 
+            priornum = prior[1].split(".")
+            for d, decomposed_citation in enumerate(decomposed):
+                currnum = decomposed_citation.split(" ")[1]
+                if len(priornum) == 2 and len(currnum.split(".")) == 1: 
+                    decomposed[d] = f"{book} {priornum[1]}.{currnum}"
                 else: 
-                    book = prior[0] 
-                priornum = prior[1].split(".")
-                for d, decomposed_citation in enumerate(decomposed):
-                    currnum = decomposed_citation.split(" ")[1]
-                    if len(priornum) == 2 and len(currnum.split(".")) == 1: 
-                        decomposed[d] = f"{book} {priornum[1]}.{currnum}"
-                    else: 
-                        decomposed[d] = f"{book} {currnum}"
-            sidx = citation_info['sidx'][idx]
-            citations[(tcpID,sidx)][0].extend(decomposed)
-            if 'Note' in citation_info['loc'][idx]: 
-                location =  "marginal"
-            else: location = "in-text"
-            citations[(tcpID,sidx)][1].extend([location]*len(decomposed))
+                    decomposed[d] = f"{book} {currnum}"
+        sidx = citation_info['sidx'][idx]
+        citations[(tcpID,sidx)][0].extend(decomposed)
+        if 'Note' in citation_info['loc'][idx]: 
+            location =  "marginal"
+        else: location = "in-text"
+        citations[(tcpID,sidx)][1].extend([location]*len(decomposed))
     return citations 
 
 def get_citations(citations, tcpIDs, loc="all"): 
@@ -143,12 +147,10 @@ if __name__ == "__main__":
         era_tcpIDs = json.load(file)
 
     for era_name in era_tcpIDs: 
-
         era_ids = era_tcpIDs[era_name]
 
         # read citations from file 
         citations = read_citations(era_name)
-
         # format citations 
         all_era = []
         for prefix, id_list in era_ids.items(): 
@@ -159,3 +161,32 @@ if __name__ == "__main__":
         # with open(f'../assets/citations/{era_name}_citations.json','w+') as file: 
         #     json.dump((b,c,v),file)
         
+'''
+pre-Elizabethan
+434 labels and 575 verse citations
+910 labels and 5334 chapter citations
+Elizabethan
+15540 labels and 45305 verse citations
+1987 labels and 30093 chapter citations
+Jacobean
+24120 labels and 135152 verse citations
+2227 labels and 29634 chapter citations
+Carolinian
+25186 labels and 132726 verse citations
+2175 labels and 26694 chapter citations
+CivilWar
+22411 labels and 95505 verse citations
+1741 labels and 15136 chapter citations
+Interregnum
+25695 labels and 168387 verse citations
+3203 labels and 24654 chapter citations
+CharlesII
+32796 labels and 325705 verse citations
+2618 labels and 37636 chapter citations
+JamesII
+9993 labels and 20401 verse citations
+1142 labels and 4384 chapter citations
+WilliamAndMary
+20984 labels and 114082 verse citations
+1653 labels and 11144 chapter citations
+'''

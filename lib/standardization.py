@@ -17,6 +17,7 @@ def extract_citations(n):
     if len(match) > 0 and len(replaced) > 0: 
         for item, ref in match:
             orig_item = item 
+            if "," in orig_item.split(" ")[0]: continue 
 
             if re.search(r"\bch \d+ v|\d+ \bch\b \d+|\&c", item): 
                 item = re.sub(r"\bch\b|\bv\b|\&c", '',item)
@@ -25,7 +26,6 @@ def extract_citations(n):
 
             item = item.split(" ")
             if len(item) == 1: continue
-            if len(item) == 2 and item[1] == ",": continue
             
             for idx, w in enumerate(item):
                 if w == "i" and re.search(r"[0-9]+",orig_item): 
@@ -127,8 +127,8 @@ def replaceBook(text):
     replaced = []
     for idx, word in enumerate(text):   
         if re.search(r"^'",word): continue
-        if re.search(r"^is$|^ch$|^de$|^the$|^can$|^he$|^am$|^time$|$the\^|^tyme$|^ti\^|^i\^|^Apol$|^ne$|^te$|^ti$|^tb$|^ac$|^child|^chyld",word): continue # without capitalization and a period 
         word = clean_word(text[idx])
+        if re.search(r"^js$|^ch$|^de$|^the$|^can$|^he$|^am$|^time$|$the\^|^tyme$|^ti\^|^i\^|^Apol$|^ne$|^te$|^ti$|^tb$|^ac$|^child|^chyld",word): continue # without capitalization and a period 
         # initial i's have been converted to j's       
         # print(word)
         # identififed a valid abbreviation         

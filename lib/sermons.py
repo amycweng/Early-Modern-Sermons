@@ -133,11 +133,9 @@ class Sermons():
                   elif "." in token:
                       if token[0].isupper(): continue
                       segment = True 
-                  
-                  if segment: never_segmented = False 
-                  
-
+                                    
                   if segment:
+                      never_segmented = False
                       self.standard.append((" ".join(current)))
                       self.sent_id.append((sid,part_id))
                       self.tokens.append(" ".join(tokens))

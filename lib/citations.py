@@ -12,15 +12,14 @@ if __name__ == "__main__":
     with open('../assets/corpora.json','r') as file: 
         corpora = json.load(file)
 
-    for ERA in corpora: 
-        if ERA not in ["CharlesII","JamesII","WilliamAndMary"]: continue
+    for ERA in corpora:
         prefixes = []
         for prefix,ids in corpora[ERA].items(): 
             if len(ids) > 0: prefixes.append(prefix)
         
         formatted_citations = []
         for prefix in prefixes: 
-            body = pd.read_csv(f"{FOLDER}/{ERA}/{prefix}_body.csv",
+            body = pd.read_csv(f"{FOLDER}/{ERA}/{prefix}_body_missing.csv",
                                     names = ["tcpID","sidx","section","loc","loc_type","pid","tokens","standardized"])
             progress = tqdm(enumerate(body["tokens"]))
             for idx, token_str in progress: 
@@ -43,7 +42,7 @@ if __name__ == "__main__":
             print(f'Processed {ERA} {prefix} texts')
             
 
-            marginalia = pd.read_csv(f"{FOLDER}/{ERA}/{prefix}_margin.csv"
+            marginalia = pd.read_csv(f"{FOLDER}/{ERA}/{prefix}_margin_missing.csv"
                             , names = ["tcpID","sidx","nidx","tokens","standardized"])
             progress = tqdm(enumerate(marginalia["tokens"]))
             for idx, token_str in progress: 
@@ -63,7 +62,7 @@ if __name__ == "__main__":
                         'replaced': replaced[cidx]
                     })
         
-        with open(f"{FOLDER}/{ERA}/citations.csv","w+") as outfile: 
+        with open(f"{FOLDER}/{ERA}/citations_missing.csv","w+") as outfile: 
             writer = csv.DictWriter(outfile, fieldnames=formatted_citations[0].keys())
             writer.writerows(formatted_citations)
         
