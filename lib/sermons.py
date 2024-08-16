@@ -106,12 +106,15 @@ class Sermons():
                   # standardize spelling 
                   if token != "<NOTE>" and token != "NONLATINALPHABET" and not re.search("\<i\>|\<\/i\>",token): 
                     all_caps, caps = False, False
+                    
                     if standard_spelling.isupper() and len(standard_spelling.strip(".")) > 1: # all uppercase 
                         all_caps = True 
                     elif standard_spelling[0].isupper(): # capitalized  
                         caps = True 
                     # strip ending punctuation 
-                    if standard_spelling.strip(".").lower() in standardizer:
+                    if token.lower() == "an" and standard_spelling.lower() == "and": 
+                        standard_spelling = "an"
+                    elif standard_spelling.strip(".").lower() in standardizer:
                         s =  standardizer[standard_spelling.strip(".").lower()]
                         if all_caps: 
                             standard_spelling = "".join([l.capitalize() for l in s])
@@ -128,28 +131,28 @@ class Sermons():
 
 
                   # SEGMENTATION 
-                  if re.search(r"\;|\?|\!|\/|\:",token) and not re.search("\<i\>|\<\/i\>",token): 
-                      segment = True
-                  elif "." in token:
-                      if token[0].isupper(): continue
-                      segment = True 
+                #   if re.search(r"\;|\?|\!|\/|\:",token) and not re.search("\<i\>|\<\/i\>",token): 
+                #       segment = True
+                #   elif "." in token:
+                #       if token[0].isupper(): continue
+                #       segment = True 
                                     
-                  if segment:
-                      never_segmented = False
-                      self.standard.append((" ".join(current)))
-                      self.sent_id.append((sid,part_id))
-                      self.tokens.append(" ".join(tokens))
-                      if check_foreign(fw):
-                          fid = [str(s) for s in sid]
-                          fid = [fid,str(part_id)]
-                          self.fw_subchunks[str(fid)] = fw  
+                #   if segment:
+                #       never_segmented = False
+                #       self.standard.append((" ".join(current)))
+                #       self.sent_id.append((sid,part_id))
+                #       self.tokens.append(" ".join(tokens))
+                #       if check_foreign(fw):
+                #           fid = [str(s) for s in sid]
+                #           fid = [fid,str(part_id)]
+                #           self.fw_subchunks[str(fid)] = fw  
 
-                      current = []
-                      tokens = []
-                      fw = []
+                #       current = []
+                #       tokens = []
+                #       fw = []
 
-                      fw_idx = 0
-                      part_id += 1
+                #       fw_idx = 0
+                #       part_id += 1
               
               if never_segmented: 
                 self.standard.append((" ".join(current)))
@@ -185,8 +188,9 @@ if __name__ == "__main__":
 
     # era = input('Enter subcorpus name: ')
     for era in corpora:
+        if era != "CivilWar": continue 
         for prefix,tcpIDs in corpora[era].items():
-
+            if prefix != "B": continue 
             if len(tcpIDs) == 0: continue
             print(era,prefix)
             tcpIDs = sorted(tcpIDs)
@@ -202,8 +206,8 @@ if __name__ == "__main__":
             with open(f"../assets/processed/{era}/json/{prefix}_info.json") as file: 
                 info = json.load(file)
 
-
             for key, segment in tokenized.items():
+                if len(segment) == 0: continue 
                 key = key.split(",")
                 tcpID = key[0]
                 
@@ -223,7 +227,7 @@ if __name__ == "__main__":
                         'section': i[0],
                         'loc': [i[1].split(loc_type)[-1] if loc_type is not None else None][0], 
                         'loc_type': loc_type, 
-                        'pid': i[2], 
+                        'pid': i[2], # paragraph index 
                         'tokens': combine_punc_with_text(segment), 
                         'standardized': combine_punc_with_text(standardized[",".join(key)])
                     })
@@ -237,7 +241,8 @@ if __name__ == "__main__":
                             'standardized': combine_punc_with_text(standardized[",".join(key)][nid])
                         })
             
-            if len(body_formatted) == 0: continue
+            if len(body_formatted) == 0: 
+                continue
             
             with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_body.csv','w+') as file: 
                 writer = csv.DictWriter(file, fieldnames=body_formatted[0].keys())
