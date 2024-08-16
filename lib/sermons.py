@@ -2,16 +2,33 @@ import json,csv
 import sys,re
 import pandas as pd 
 sys.path.append('../')
-from lib.spelling import standardizer 
+import os, math
+# standardized with GPT 3.5 
+standardizer = {}
+for fp in os.listdir('../assets/vocab'):
+    if "standard" not in fp: continue
+    with open(f"../assets/vocab/{fp}") as file: 
+        new_standard = json.load(file)
+        standardizer.update({k.lower():v for k,v in new_standard.items() if len(k) > 1 and len(v) > 1 and not re.search("\d",k) and (len(re.findall("\^",k)) < math.floor(len(k)/2))})
+
+
+with open('../assets/corpora.json','r') as file: 
+        corpora = json.load(file)
 
 def combine_punc_with_text(segment): 
     segment = re.sub(r'\s+([,.?!;:)])', r'\1', segment)
     segment = re.sub(r'([(])\s+', r'\1', segment) 
     segment = re.sub(r"\s+"," ",segment)
+    start_it = re.findall(r"\<i\>",segment)
+    end_it = re.findall(r"\<\/i\>",segment)
+    if len(start_it) > len(end_it):
+        segment = segment + " </i>"
+    elif len(start_it) < len(end_it):
+        segment = "<i> " + segment 
     return segment
 
 class Sermons():
-    def __init__(self, era, prefix):
+    def __init__(self, era, prefix,texts,marginalia):
         self.era = era
         self.prefix = prefix
         self.sent_id = [] # tuples of ((tcpID, chunk idx, location), subchunk idx) representing the subchunk's ID
@@ -19,18 +36,14 @@ class Sermons():
         self.fw_subchunks = {} # IDs of subchunks with more than three foreign words
         self.tokens = [] # subchunk strings that are tokenized
 
-        self.get_texts_from_json()
-        self.get_marginalia_from_json()
+        self.get_texts(texts)
+        self.get_marginalia(marginalia)
         self.get_indices()
 
     def get_indices(self):
         self.sent_id_to_idx = {x:idx for idx, x in enumerate(self.sent_id)}
 
-    def get_marginalia_from_json(self):
-        # reorganize marginalia dictionary from the JSON file
-        with open(f'../assets/processed/{self.era}/json/{self.prefix}_marginalia.json','r') as file:
-            marginalia = json.load(file)
-            print('Loaded marginalia')
+    def get_marginalia(self,marginalia):
         new_marginalia = {}
         note_id = 0 # id of the note within the current sentence chunk
         curr_s = 0 # index of the current sentence chunk
@@ -56,10 +69,7 @@ class Sermons():
             self.create_corpus(marginalia,True)
             print('Processed marginalia')
 
-    def get_texts_from_json(self):
-        with open(f'../assets/processed/{self.era}/json/{self.prefix}_texts.json','r') as file:
-            texts = json.load(file)
-            print('Loaded texts')
+    def get_texts(self,texts):
         self.create_corpus(texts)
         print('Processed texts')
 
@@ -78,7 +88,6 @@ class Sermons():
       for tcpID, items in data.items():    
       
           for s_idx, encodings in items.items():
-              never_segmented = True 
               current = []
               tokens = []
               part_id = 0
@@ -128,40 +137,14 @@ class Sermons():
                   if 'fw' in pos: # foreign words
                       fw.append(fw_idx)
                   fw_idx += 1 
-
-
-                  # SEGMENTATION 
-                #   if re.search(r"\;|\?|\!|\/|\:",token) and not re.search("\<i\>|\<\/i\>",token): 
-                #       segment = True
-                #   elif "." in token:
-                #       if token[0].isupper(): continue
-                #       segment = True 
-                                    
-                #   if segment:
-                #       never_segmented = False
-                #       self.standard.append((" ".join(current)))
-                #       self.sent_id.append((sid,part_id))
-                #       self.tokens.append(" ".join(tokens))
-                #       if check_foreign(fw):
-                #           fid = [str(s) for s in sid]
-                #           fid = [fid,str(part_id)]
-                #           self.fw_subchunks[str(fid)] = fw  
-
-                #       current = []
-                #       tokens = []
-                #       fw = []
-
-                #       fw_idx = 0
-                #       part_id += 1
               
-              if never_segmented: 
-                self.standard.append((" ".join(current)))
-                self.sent_id.append((sid,part_id))
-                self.tokens.append(" ".join(tokens))
-                if check_foreign(fw):
-                    fid = [str(s) for s in sid]
-                    fid = [fid,str(part_id)] 
-                    self.fw_subchunks[str(fid)] = fw
+              self.standard.append((" ".join(current)))
+              self.sent_id.append((sid,part_id))
+              self.tokens.append(" ".join(tokens))
+              if check_foreign(fw):
+                fid = [str(s) for s in sid]
+                fid = [fid,str(part_id)] 
+                self.fw_subchunks[str(fid)] = fw
     
     def get_chunks(self, targets):
       chunks = {} # keys are just (tcpID, chunk idx, is_note)
@@ -172,8 +155,6 @@ class Sermons():
                   chunks[curr_sid] = {}
               if s_id[-1] not in chunks[curr_sid]:
                   chunks[curr_sid][s_id[-1]] = targets[self.sent_id_to_idx[(s_id,part_id)]]
-              else: 
-                  chunks[curr_sid][s_id[-1]] = chunks[curr_sid][s_id[-1]] + " " + targets[self.sent_id_to_idx[(s_id,part_id)]]
           else:
               curr_sid = f"{s_id[0]},{s_id[1]},False"
               if curr_sid not in chunks:
@@ -182,77 +163,62 @@ class Sermons():
                   chunks[curr_sid] = chunks[curr_sid] + " " + targets[self.sent_id_to_idx[(s_id,part_id)]]
       return chunks 
     
-if __name__ == "__main__": 
-    with open('../assets/corpora.json','r') as file: 
-        corpora = json.load(file)
+def PROCESS_SERMONS(era,prefix,text,marginalia,info):
+    tcpIDs = corpora[era][prefix]
 
-    # era = input('Enter subcorpus name: ')
-    for era in corpora:
-        if era != "CivilWar": continue 
-        for prefix,tcpIDs in corpora[era].items():
-            if prefix != "B": continue 
-            if len(tcpIDs) == 0: continue
-            print(era,prefix)
-            tcpIDs = sorted(tcpIDs)
-            seen = {}
-            corpus = Sermons(era,prefix)
+    if len(tcpIDs) == 0: return
+    print(era,prefix)
+    tcpIDs = sorted(tcpIDs)
+    corpus = Sermons(era,prefix,text,marginalia)
 
-            body_formatted = []
-            margins_formatted = []
+    body_formatted = []
+    margins_formatted = []
 
-            tokenized = corpus.get_chunks(corpus.tokens)
-            standardized = corpus.get_chunks(corpus.standard)
+    tokenized = corpus.get_chunks(corpus.tokens)
+    standardized = corpus.get_chunks(corpus.standard)
 
-            with open(f"../assets/processed/{era}/json/{prefix}_info.json") as file: 
-                info = json.load(file)
+    for key, segment in tokenized.items():
+        if len(segment) == 0: continue 
+        key = key.split(",")
+        tcpID = key[0]
+        sidx = int(key[1])
+        i = info[tcpID][sidx]
+        if i[1] is None: loc_type = None
+        elif 'IMAGE' in i[1]: loc_type = "IMAGE"
+        else: loc_type = "PAGE"
 
-            for key, segment in tokenized.items():
-                if len(segment) == 0: continue 
-                key = key.split(",")
-                tcpID = key[0]
-                
-                if tcpID not in seen: 
-                    nidx = 0
-                    seen[tcpID] = True 
+        if key[-1] == 'False':
+            body_formatted.append({
+                'tcpID': tcpID,
+                'sid': sidx,
+                'section': i[0],
+                'loc': [i[1].split(loc_type)[-1] if loc_type is not None else None][0], 
+                'loc_type': loc_type, 
+                'pid': i[2], # paragraph index 
+                'tokens': combine_punc_with_text(segment), 
+                'standardized': combine_punc_with_text(standardized[",".join(key)])
+            })
+        else: 
+            for nid, part in segment.items(): 
+                margins_formatted.append({
+                    'tcpID': tcpID,
+                    'sid': sidx,
+                    'nid': nid,
+                    'tokens': combine_punc_with_text(part), 
+                    'standardized': combine_punc_with_text(standardized[",".join(key)][nid])
+                })
+    
+    if len(body_formatted) > 0: 
+    
+        with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_body.csv','w+') as file: 
+            writer = csv.DictWriter(file, fieldnames=body_formatted[0].keys())
+            writer.writerows(body_formatted)
+            print(f'{prefix} body done')
 
-                i = info[key[0]][key[1]]
-                if i[1] is None: loc_type = None
-                elif 'IMAGE' in i[1]: loc_type = "IMAGE"
-                else: loc_type = "PAGE"
+        with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_margin.csv','w+') as file: 
+            writer = csv.DictWriter(file, fieldnames=['tcpID','sid','nid','tokens','standardized'])
+            writer.writerows(margins_formatted)
+            print(f'{prefix} marginalia done')
 
-                if key[-1] == 'False':
-                    body_formatted.append({
-                        'tcpID': tcpID,
-                        'sid': key[1],
-                        'section': i[0],
-                        'loc': [i[1].split(loc_type)[-1] if loc_type is not None else None][0], 
-                        'loc_type': loc_type, 
-                        'pid': i[2], # paragraph index 
-                        'tokens': combine_punc_with_text(segment), 
-                        'standardized': combine_punc_with_text(standardized[",".join(key)])
-                    })
-                else: 
-                    for nid, part in segment.items(): 
-                        margins_formatted.append({
-                            'tcpID': tcpID,
-                            'sid': key[1],
-                            'nid': nid,
-                            'tokens': combine_punc_with_text(segment[nid]), 
-                            'standardized': combine_punc_with_text(standardized[",".join(key)][nid])
-                        })
-            
-            if len(body_formatted) == 0: 
-                continue
-            
-            with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_body.csv','w+') as file: 
-                writer = csv.DictWriter(file, fieldnames=body_formatted[0].keys())
-                writer.writerows(body_formatted)
-                print(f'{prefix} body done')
-
-            with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_margin.csv','w+') as file: 
-                writer = csv.DictWriter(file, fieldnames=['tcpID','sid','nid','tokens','standardized'])
-                writer.writerows(margins_formatted)
-                print(f'{prefix} marginalia done')
-
-            with open(f'../assets/processed/{era}/sub-segments/{prefix}.json','w+') as file: 
-                json.dump([corpus.sent_id,corpus.standard,corpus.tokens,corpus.fw_subchunks],file)
+        with open(f'../assets/foreign/{era}_{prefix}.json','w+') as file: 
+            json.dump(corpus.fw_subchunks,file)

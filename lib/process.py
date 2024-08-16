@@ -3,6 +3,8 @@ import sys
 sys.path.append('../')
 from lib.standardization import * 
 from lib.sentences import *
+from lib.sermons import *
+from lib.citations import *  
 
 import pandas as pd 
 from tqdm import tqdm 
@@ -46,15 +48,11 @@ def encode(tcpID):
             t += 1 
              
             if re.search(r"STARTNOTE\d+", token):
-                # add a placeholder to retain the note's position in the text 
+                # add a placeholder to retain the note's position in the text
                 encoded.append(('<NOTE>',"NOTE",'<NOTE>',0))
-                in_note, start_note = True, True 
-            elif re.search(r"ENDNOTE\d+",token): 
+                in_note, start_note = True, True
+            elif re.search(r"ENDNOTE\d+",token):
                 in_note = False
-            elif token == "STARTITALICS": 
-                encoded.append(('<i>',"<i>",'<i>',note_tag)) 
-            elif token == "ENDITALICS": 
-                encoded.append(('</i>',"</i>",'</i>',note_tag))
             else:
                 if start_note:
                     note_tag, start_note = 1, False
@@ -62,11 +60,15 @@ def encode(tcpID):
                     note_tag = 2
                 else: 
                     note_tag = 0
-                
-                if token == "NONLATINALPHABET": 
+                if token == "STARTITALICS": 
+                    encoded.append(('<i>',"<i>",'<i>',note_tag)) 
+                elif token == "ENDITALICS": 
+                    encoded.append(('</i>',"</i>",'</i>',note_tag))
+                elif token == "NONLATINALPHABET": 
                     encoded.append((token, "foreign", token, note_tag))
                 
-                encoded.append((token, pos[t], standardized[t], note_tag))
+                else: 
+                    encoded.append((token, pos[t], standardized[t], note_tag))
 
         text_parts = []
         curr = []
@@ -97,24 +99,15 @@ def process_prefix(tcpIDs,era,prefix):
     info = {}
     progress = tqdm(tcpIDs)
     for tcpID in progress:
-        if tcpID != "B25240": continue 
+        # if tcpID != "B10040": continue 
         progress.set_description(era + " " + tcpID) 
         m, s, i = encode(tcpID)
         margins[tcpID] = m 
         texts[tcpID] = s
         info[tcpID] = i 
 
-    with open(f"../assets/processed/{era}/json/{prefix}_marginalia.json","w+") as file: 
-        json.dump(margins, file)
-        print("wrote marginalia")
-
-    with open(f"../assets/processed/{era}/json/{prefix}_texts.json","w+") as file: 
-        json.dump(texts, file)
-        print("wrote texts")
-
-    with open(f"../assets/processed/{era}/json/{prefix}_info.json","w+") as file: 
-        json.dump(info, file)
-        print("wrote sentence info")
+    PROCESS_SERMONS(era,prefix,texts,margins,info)
+    PROCESS_CITATIONS(era,prefix)
 
 import os 
 if __name__ == "__main__": 
@@ -126,9 +119,7 @@ if __name__ == "__main__":
     
     # era = input('Enter subcorpus name: ')
     for era in corpora:
-        if era != "CivilWar": continue 
         for prefix,tcpIDs in corpora[era].items():
-            if prefix != "B": continue 
             tcpIDs = sorted(tcpIDs)
             tcpIDs = [tcpID for tcpID in tcpIDs if tcpID in already_adorned]
             if len(tcpIDs) == 0: continue

@@ -32,7 +32,7 @@ Target format is "<book> <chapter> <verse>"
 def simple(book, passage): 
     # the simple case of just having "<book> <chapter> <verse>"
     # sometimes an entirely missing verse reference becomes an illegible word --> Psalms 39.3 as Psalms * 
-    nums = re.findall(r'[0-9\^\*\*]+',passage)
+    nums = re.findall(r'[0-9\^\*]+',passage)
     return f'{book} {nums[0]}.{nums[1]}'
 
 '''
