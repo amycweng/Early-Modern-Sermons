@@ -52,8 +52,8 @@ def PROCESS_CITATIONS(ERA,prefix):
                 'outlier': [None if cidx not in outliers else outliers[cidx]][0],
                 'replaced': replaced[cidx]
             })
-    
-    with open(f"{FOLDER}/{ERA}/{prefix}_citations.csv","w+") as outfile: 
-        writer = csv.DictWriter(outfile, fieldnames=formatted_citations[0].keys())
-        writer.writerows(formatted_citations)
+    if len(formatted_citations) > 0: 
+        with open(f"{FOLDER}/{ERA}/{prefix}_citations.csv","w+") as outfile: 
+            writer = csv.DictWriter(outfile, fieldnames=formatted_citations[0].keys())
+            writer.writerows(formatted_citations)
     

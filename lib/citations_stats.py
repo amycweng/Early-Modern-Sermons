@@ -6,11 +6,11 @@ from lib.standardization import *
 from collections import defaultdict
 import pandas as pd
 
-def read_citations(era_name):
-    citation_info = pd.read_csv(f"/Users/amycweng/DH/SERMONS_APP/db/data/{era_name}/citations.csv",
+def read_citations(era_name,prefix):
+    citation_info = pd.read_csv(f"/Users/amycweng/DH/SERMONS_APP/db/data/{era_name}/{prefix}_citations.csv",
                             names=['tcpID',"sidx","loc","cidx","citation","outlier","replaced"]
                             )
-    missing_citations = pd.read_csv(f"/Users/amycweng/DH/SERMONS_APP/db/data/{era_name}/citations_missing.csv",
+    missing_citations = pd.read_csv(f"/Users/amycweng/DH/SERMONS_APP/db/data/{era_name}/{prefix}_citations_missing.csv",
                             names=['tcpID',"sidx","loc","cidx","citation","outlier","replaced"]
                             )
     citation_info = pd.concat([citation_info,missing_citations],ignore_index=True)
@@ -108,10 +108,10 @@ def get_citations(citations, tcpIDs, loc="all"):
                     if key not in segment_ids_c: 
                         segment_ids_c[key] = []
                     segment_ids_c[key].append(f"{tcpID},{sidx}")
-    with open(f'../assets/citations/{era_name}_verse_citation_segments.json','w+') as file: 
-        json.dump(segment_ids,file)
-    with open(f'../assets/citations/{era_name}_chapter_citation_segments.json','w+') as file: 
-        json.dump(segment_ids_c,file)
+    # with open(f'../assets/citations/{era_name}_verse_citation_segments.json','w+') as file: 
+    #     json.dump(segment_ids,file)
+    # with open(f'../assets/citations/{era_name}_chapter_citation_segments.json','w+') as file: 
+    #     json.dump(segment_ids_c,file)
     print(era_name)
     print("{} labels and {} verse citations".format(len(segment_ids),sum([len(_) for c, _ in segment_ids.items()])))
     print("{} labels and {} chapter citations".format(len(segment_ids_c),sum([len(_) for c, _ in segment_ids_c.items()])))
@@ -147,46 +147,15 @@ if __name__ == "__main__":
         era_tcpIDs = json.load(file)
 
     for era_name in era_tcpIDs: 
-        era_ids = era_tcpIDs[era_name]
-
-        # read citations from file 
-        citations = read_citations(era_name)
-        # format citations 
-        all_era = []
-        for prefix, id_list in era_ids.items(): 
-            all_era.extend(id_list)
+        for prefix, era_ids in era_tcpIDs[era_name].items(): 
+            # read citations from file 
+            citations = read_citations(era_name)
+            # format citations 
+            all_era = []
+            for prefix, id_list in era_ids.items(): 
+                all_era.extend(id_list)
         b, c,v = get_citations(citations, all_era)
-
-        # c_count = count_citations(c,v)
-        # with open(f'../assets/citations/{era_name}_citations.json','w+') as file: 
-        #     json.dump((b,c,v),file)
-        
-'''
-pre-Elizabethan
-434 labels and 575 verse citations
-910 labels and 5334 chapter citations
-Elizabethan
-15540 labels and 45305 verse citations
-1987 labels and 30093 chapter citations
-Jacobean
-24120 labels and 135152 verse citations
-2227 labels and 29634 chapter citations
-Carolinian
-25186 labels and 132726 verse citations
-2175 labels and 26694 chapter citations
-CivilWar
-22411 labels and 95505 verse citations
-1741 labels and 15136 chapter citations
-Interregnum
-25695 labels and 168387 verse citations
-3203 labels and 24654 chapter citations
-CharlesII
-32796 labels and 325705 verse citations
-2618 labels and 37636 chapter citations
-JamesII
-9993 labels and 20401 verse citations
-1142 labels and 4384 chapter citations
-WilliamAndMary
-20984 labels and 114082 verse citations
-1653 labels and 11144 chapter citations
-'''
+        c_count = count_citations(c,v)
+        with open(f'../assets/citations/{era_name}_citations.json','w+') as file: 
+            json.dump((b,c,v),file)
+    
