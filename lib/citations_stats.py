@@ -6,24 +6,12 @@ from lib.standardization import *
 from collections import defaultdict
 import pandas as pd
 
-def read_citations(era_name,prefix):
-    citation_info = pd.read_csv(f"/Users/amycweng/DH/SERMONS_APP/db/data/{era_name}/{prefix}_citations.csv",
-                            names=['tcpID',"sidx","loc","cidx","citation","outlier","replaced"]
-                            )
-    missing_citations = pd.read_csv(f"/Users/amycweng/DH/SERMONS_APP/db/data/{era_name}/{prefix}_citations_missing.csv",
-                            names=['tcpID',"sidx","loc","cidx","citation","outlier","replaced"]
-                            )
-    citation_info = pd.concat([citation_info,missing_citations],ignore_index=True)
-
+def read_citations(citation_info):
     citations = {}
     tcpIDs = citation_info['tcpID']
+
     for idx, tcpID in enumerate(tcpIDs):
-        
-        if 'B' in tcpID: 
-            prefix = 'B'
-        else: 
-            prefix = tcpID[:2]
-        if tcpID not in era_ids[prefix]: continue
+
         sidx = citation_info['sidx'][idx]
         
         if (tcpID,sidx) not in citations:     
@@ -31,6 +19,7 @@ def read_citations(era_name,prefix):
 
         decomposed = citation_info['citation'][idx]
         if isinstance(decomposed,float): continue
+
         decomposed = decomposed.split("; ")
         book = decomposed[0].split(" ")[0]
         if book == "Ibidem" and len(citations[(tcpID,sidx)][0]) > 0: 
@@ -53,21 +42,18 @@ def read_citations(era_name,prefix):
             location =  "marginal"
         else: location = "in-text"
         citations[(tcpID,sidx)][1].extend([location]*len(decomposed))
+
     return citations 
 
-def get_citations(citations, tcpIDs, loc="all"): 
-    tcpIDs = {k:None for k in tcpIDs}
+def get_citations(citations): 
     all_books = {}
     all_chapters = {}
     all_verses = {}
     segment_ids = {}
-    segment_ids_c = {} # associated with chapter citations only 
+    # segment_ids_c = {} # associated with chapter citations only 
     for cid,cited in citations.items(): 
         tcpID, sidx = cid 
-        if tcpID not in tcpIDs: continue
         if len(cited[0]) == 0: continue
-        if loc != "all" and cited[1][0] != loc:  
-            continue
         cited = cited[0]
         for c in cited: 
             c = c.split(" ")
@@ -105,16 +91,13 @@ def get_citations(citations, tcpIDs, loc="all"):
                         segment_ids[key].append(f"{tcpID},{sidx}")
                 else: 
                     key = f"{book}-{chapter}" 
-                    if key not in segment_ids_c: 
-                        segment_ids_c[key] = []
-                    segment_ids_c[key].append(f"{tcpID},{sidx}")
-    # with open(f'../assets/citations/{era_name}_verse_citation_segments.json','w+') as file: 
-    #     json.dump(segment_ids,file)
-    # with open(f'../assets/citations/{era_name}_chapter_citation_segments.json','w+') as file: 
-    #     json.dump(segment_ids_c,file)
+                    if key not in segment_ids: 
+                        segment_ids[key] = []
+                    segment_ids[key].append(f"{tcpID},{sidx}")
+    with open(f'../assets/citations/{era_name}_citation_segments.json','w+') as file: 
+        json.dump(segment_ids,file)
     print(era_name)
-    print("{} labels and {} verse citations".format(len(segment_ids),sum([len(_) for c, _ in segment_ids.items()])))
-    print("{} labels and {} chapter citations".format(len(segment_ids_c),sum([len(_) for c, _ in segment_ids_c.items()])))
+    print("{} labels and {} citations".format(len(segment_ids),sum([len(_) for c, _ in segment_ids.items()])))
     return all_books, all_chapters, all_verses
 
 def count_citations(c,v): # chapter and verse citations only 
@@ -141,21 +124,24 @@ def count_citations(c,v): # chapter and verse citations only
     c_count = {k:sum(v) for k,v in c_count.items()}
     return c_count
 
-
+import os 
 if __name__ == "__main__": 
     with open(f"../assets/corpora.json") as file:
         era_tcpIDs = json.load(file)
-
+    
     for era_name in era_tcpIDs: 
-        for prefix, era_ids in era_tcpIDs[era_name].items(): 
+        all_citations = {}
+        for fp in os.listdir(f"/Users/amycweng/DH/SERMONS_APP/db/data/{era_name}"): 
+            if "citations" not in fp: continue
             # read citations from file 
-            citations = read_citations(era_name)
-            # format citations 
-            all_era = []
-            for prefix, id_list in era_ids.items(): 
-                all_era.extend(id_list)
-        b, c,v = get_citations(citations, all_era)
-        c_count = count_citations(c,v)
-        with open(f'../assets/citations/{era_name}_citations.json','w+') as file: 
-            json.dump((b,c,v),file)
+            citation_info = pd.read_csv(f"/Users/amycweng/DH/SERMONS_APP/db/data/{era_name}/{fp}",
+                        names=['tcpID',"sidx","loc","cidx","citation","outlier","replaced"]
+                        )
+            citations = read_citations(citation_info)
+            all_citations.update(citations)
+            
+        b, c,v = get_citations(all_citations)
+        # c_count = count_citations(c,v)
+        # with open(f'../assets/citations/{era_name}_citations.json','w+') as file: 
+        #     json.dump((b,c,v),file)
     
