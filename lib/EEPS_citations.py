@@ -1,110 +1,61 @@
 import pandas as pd 
-import os, json
-from tqdm import tqdm 
+import json 
+import re 
+import os 
+import warnings
+warnings.filterwarnings("ignore", category=pd.errors.SettingWithCopyWarning)
 
-already_adorned = os.listdir('../assets/adorned')
-already_adorned = {k.split(".txt")[0]:None for k in already_adorned}
+# get Bibles 
+bible_dir = "/Users/amycweng/DH/SERMONS_APP/db/data/Bibles"
+bibles = ['Douay-Rheims','Geneva','KJV','Tyndale','Wycliffe','Vulgate']
+bible_verses = {}
+for b in bibles: 
+    with open(f"{bible_dir}/{b}.json",'r') as f: 
+        verses = json.load(f)
+    for v in verses: 
+        bible_verses[f'{v} ({b})'] = verses[v]
+list(bible_verses.keys())[0]
 
-with open('../assets/corpora.json','r') as file: 
-    corpora = json.load(file)
+main_dir = "/Users/amycweng/DH/EEPS"
+def process_file(tcpID,era): 
+    use_cols = ["token","cite_label","qp_label","sent_idx","section_name"]
+    df = pd.read_csv(f"{main_dir}/encodings_new/{tcpID}_encoded.csv",
+                    usecols = use_cols)
+    df['new_cited'] = ''
+    df['new_qp'] = ''
+    grouped_df = df.groupby('sent_idx').agg({
+        'token': lambda x: ' '.join(x),  
+        'cite_label':lambda x: list(set(x)),
+        'new_cited': lambda x: ''.join(x),
+        'qp_label':lambda x: list(set(x)),
+        'new_qp': lambda x: ''.join(x),
+        'section_name':lambda x: list(set(x))
+    }).reset_index()
+    grouped_df['qp_text']  = ''
+    pattern = r"\('([^']+)', ([0-9.]+)\)"
+    for idx, qp in enumerate(grouped_df['qp_label']): 
+        for qp_labels in qp: 
+            if not isinstance(qp_labels,float): 
+                matches = re.findall(pattern, qp_labels)
+                result = [(text, float(score)) for text, score in matches]
+                grouped_df['qp_text'][idx] = []
+                for r in result: 
+                    grouped_df['qp_text'][idx].append(bible_verses[r[0]])
+    new_order = ['sent_idx','token','qp_text',
+                'cite_label','new_cited',
+                'qp_label','new_qp','section_name']
+    grouped_df = grouped_df[new_order]
+    grouped_df.to_csv(f"{main_dir}/pending_new/{era}_{tcpID}.csv",index=False)
 
-for era in corpora: 
-    if era == "pre-Elizabethan": continue
-
-    qp_file = f"/Users/amycweng/DH/SERMONS_APP/db/data/{era}/paraphrases.csv"
-    qp = pd.read_csv(qp_file,header=None)
-    qp_tcpIDs = qp[0].tolist()
-    qp_sidx = qp[1].tolist()
-    qp_label = qp[3].tolist()
-    qp_score = qp[4].tolist()
-    qp_indices = {}
-    for idx, tcpID in enumerate(qp_tcpIDs): 
-        if tcpID not in qp_indices: qp_indices[tcpID] = {}
-        qpidx = qp_sidx[idx]
-        if qpidx not in qp_indices: 
-            qp_indices[tcpID][qpidx] = [(qp_label[idx],round(qp_score[idx],2))]
-        else:
-            qp_indices[tcpID][qpidx].append((qp_label[idx],round(qp_score[idx],2)))
-
-    for prefix,tcpIDs in corpora[era].items(): 
-        if era == "WilliamAndMary" and prefix in ["A0"]: continue
-        tcpIDs = sorted(tcpIDs)
-        tcpIDs = [tcpID for tcpID in tcpIDs if tcpID in already_adorned]
-        if len(tcpIDs) == 0: continue
-        citations_file = f"/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_citations.csv"
-        citations = pd.read_csv(citations_file,header=None)
-        sindices = citations[1].tolist()
-        stcpIDs = citations[0].tolist()
-        s_cited = citations[6].tolist()
-        c_dict = {}
-        c_endings = {}
-        for idx,sidx in enumerate(sindices):
-            tcpID = stcpIDs[idx]
-            if tcpID not in c_dict: c_dict[tcpID] = {}
-            if sidx not in c_dict[tcpID]: c_dict[tcpID][sidx] = ([],[],[]) 
-            c = s_cited[idx].split(' ')
-            if len(c[0]) == 1: 
-                start = c[1]
-            else: start = c[0]
-            end = c[-1]
-            c_dict[tcpID][sidx][0].append(start)
-            c_dict[tcpID][sidx][1].append(end)
-            c_dict[tcpID][sidx][2].append(s_cited[idx])
-
-
-        tcpIDs = tqdm(tcpIDs)
-        for tcpID in tcpIDs:
-            tcpIDs.set_description(f"{era} {tcpID}")
-            encoding_file = f"/Users/amycweng/DH/EEPS/encodings/{tcpID}_encoded.csv"
-            encoding = pd.read_csv(encoding_file)
-            encoding = encoding.to_dict(orient='records')
-
-            citation_enc = []
-            in_cited = False 
-
-            def skip(sidx): 
-                # only want those with citations
-                # or containing or surrounded by segments with qp 
-                if tcpID in qp_indices: 
-                    if sidx+1 in qp_indices[tcpID]: return False 
-                    if sidx-1 in qp_indices[tcpID]: return False
-                    if sidx in qp_indices[tcpID]: return False 
-                return True 
-            
-            if tcpID not in c_dict: continue
-
-            for e in encoding: 
-                sidx = e['sent_idx']
-                if isinstance(e['token'],float): 
-                    continue 
-                if sidx not in c_dict[tcpID]: 
-                    e['cite_tag'] = 'O'
-                    if skip(sidx): 
-                        continue  
-                elif e['token'].strip(".,") in c_dict[tcpID][sidx][0]: 
-                    e['cite_tag'] = 'B-S' 
-                    e['cite_label'] = c_dict[tcpID][sidx][2]
-                    in_cited = True
-                elif in_cited:
-                    if e['token'].strip(".,") in c_dict[tcpID][sidx][1]: 
-                        in_cited = False 
-                    e['cite_tag'] = 'I-S'
-                else:  
-                    e['cite_tag'] = 'O' 
-                
-                if tcpID in qp_indices: 
-                    if sidx in qp_indices[tcpID]: 
-                        e['qp_tag'] = True
-                        e['qp_label'] = qp_indices[tcpID][sidx]
-                    else: 
-                        e['qp_tag'] = False  
-                else: 
-                    e['qp_tag'] = False 
-                citation_enc.append(e) 
-            df = pd.DataFrame(citation_enc)
-            new_order = ['token', 'sent_idx' ,
-                         'cite_tag' , 'cite_label' , 'qp_tag' , 'qp_label',
-                         'pos' , 'regular' ,'lemma','note_tag','it_tag',
-                         'section_idx','paragraph_idx','section_name'
-                         ]
-            df.to_csv(f"/Users/amycweng/DH/EEPS/encodings_new/{tcpID}_encoded.csv",index=False)
+if __name__ == "__main__": 
+    for fp in sorted(os.listdir(f"{main_dir}/pending_new")): 
+        if 'Store' in fp: continue 
+        tcpID = fp.split("_")[-1]
+        era =  fp.split("_")[0]
+        tcpID = tcpID.split(".csv")[0]
+        print(tcpID,era)
+        process_file(tcpID,era)
+    if fp in ['Interregnum_A59589','CivilWar_A43141','CivilWar_A86098','WilliamAndMary_A58375']:  
+        tcpID = fp.split("_")[-1]
+        era =  fp.split("_")[0]
+        process_file(tcpID,era)
