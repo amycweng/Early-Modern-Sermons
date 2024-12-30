@@ -8,16 +8,23 @@ already_adorned = {k.split(".txt")[0]:None for k in already_adorned}
 with open('../assets/corpora.json','r') as file: 
     corpora = json.load(file)
 
-for era in corpora:  
+for era in corpora: 
+    if era == "pre-Elizabethan": continue
+
     qp_file = f"/Users/amycweng/DH/SERMONS_APP/db/data/{era}/paraphrases.csv"
     qp = pd.read_csv(qp_file,header=None)
     qp_tcpIDs = qp[0].tolist()
     qp_sidx = qp[1].tolist()
+    qp_label = qp[3].tolist()
+    qp_score = qp[4].tolist()
     qp_indices = {}
     for idx, tcpID in enumerate(qp_tcpIDs): 
         if tcpID not in qp_indices: qp_indices[tcpID] = {}
-        if qp_sidx[idx] not in qp_indices: 
-            qp_indices[tcpID][qp_sidx[idx]] = None 
+        qpidx = qp_sidx[idx]
+        if qpidx not in qp_indices: 
+            qp_indices[tcpID][qpidx] = [(qp_label[idx],round(qp_score[idx],2))]
+        else:
+            qp_indices[tcpID][qpidx].append((qp_label[idx],round(qp_score[idx],2)))
 
     for prefix,tcpIDs in corpora[era].items(): 
         if era == "WilliamAndMary" and prefix in ["A0"]: continue
@@ -34,7 +41,7 @@ for era in corpora:
         for idx,sidx in enumerate(sindices):
             tcpID = stcpIDs[idx]
             if tcpID not in c_dict: c_dict[tcpID] = {}
-            if sidx not in c_dict[tcpID]: c_dict[tcpID][sidx] = ([],[]) 
+            if sidx not in c_dict[tcpID]: c_dict[tcpID][sidx] = ([],[],[]) 
             c = s_cited[idx].split(' ')
             if len(c[0]) == 1: 
                 start = c[1]
@@ -42,6 +49,7 @@ for era in corpora:
             end = c[-1]
             c_dict[tcpID][sidx][0].append(start)
             c_dict[tcpID][sidx][1].append(end)
+            c_dict[tcpID][sidx][2].append(s_cited[idx])
 
 
         tcpIDs = tqdm(tcpIDs)
@@ -55,6 +63,8 @@ for era in corpora:
             in_cited = False 
 
             def skip(sidx): 
+                # only want those with citations
+                # or containing or surrounded by segments with qp 
                 if tcpID in qp_indices: 
                     if sidx+1 in qp_indices[tcpID]: return False 
                     if sidx-1 in qp_indices[tcpID]: return False
@@ -73,6 +83,7 @@ for era in corpora:
                         continue  
                 elif e['token'].strip(".,") in c_dict[tcpID][sidx][0]: 
                     e['cite_tag'] = 'B-S' 
+                    e['cite_label'] = c_dict[tcpID][sidx][2]
                     in_cited = True
                 elif in_cited:
                     if e['token'].strip(".,") in c_dict[tcpID][sidx][1]: 
@@ -84,10 +95,16 @@ for era in corpora:
                 if tcpID in qp_indices: 
                     if sidx in qp_indices[tcpID]: 
                         e['qp_tag'] = True
+                        e['qp_label'] = qp_indices[tcpID][sidx]
                     else: 
                         e['qp_tag'] = False  
                 else: 
                     e['qp_tag'] = False 
                 citation_enc.append(e) 
             df = pd.DataFrame(citation_enc)
-            df.to_csv(encoding_file,index=False)
+            new_order = ['token', 'sent_idx' ,
+                         'cite_tag' , 'cite_label' , 'qp_tag' , 'qp_label',
+                         'pos' , 'regular' ,'lemma','note_tag','it_tag',
+                         'section_idx','paragraph_idx','section_name'
+                         ]
+            df.to_csv(f"/Users/amycweng/DH/EEPS/encodings_new/{tcpID}_encoded.csv",index=False)
