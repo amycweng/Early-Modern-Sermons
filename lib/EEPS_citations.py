@@ -18,18 +18,17 @@ list(bible_verses.keys())[0]
 
 main_dir = "/Users/amycweng/DH/EEPS"
 def process_file(tcpID,era): 
-    use_cols = ["token","cite_label","qp_label","sent_idx","section_name"]
+    use_cols = ["token","cite_label","qp_label","sent_idx"]
     df = pd.read_csv(f"{main_dir}/encodings_new/{tcpID}_encoded.csv",
                     usecols = use_cols)
-    df['new_cited'] = ''
-    df['new_qp'] = ''
+    df['scriptural'] = ''
+    df['non-scriptural'] = ''
     grouped_df = df.groupby('sent_idx').agg({
         'token': lambda x: ' '.join(x),  
         'cite_label':lambda x: list(set(x)),
-        'new_cited': lambda x: ''.join(x),
         'qp_label':lambda x: list(set(x)),
-        'new_qp': lambda x: ''.join(x),
-        'section_name':lambda x: list(set(x))
+        'scriptural': lambda x: ''.join(x),
+        'non-scriptural': lambda x: ''.join(x),
     }).reset_index()
     grouped_df['qp_text']  = ''
     pattern = r"\('([^']+)', ([0-9.]+)\)"
@@ -41,9 +40,9 @@ def process_file(tcpID,era):
                 grouped_df['qp_text'][idx] = []
                 for r in result: 
                     grouped_df['qp_text'][idx].append(bible_verses[r[0]])
-    new_order = ['sent_idx','token','qp_text',
-                'cite_label','new_cited',
-                'qp_label','new_qp','section_name']
+    new_order = ['sent_idx','token',
+                'cite_label','qp_label',
+                'scriptural','non-scriptural','qp_text']
     grouped_df = grouped_df[new_order]
     grouped_df.to_csv(f"{main_dir}/pending_new/{era}_{tcpID}.csv",index=False)
 

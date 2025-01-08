@@ -59,28 +59,29 @@ for era in corpora:
             citation_enc = []
             in_cited = False 
 
-            def skip(sidx): 
-                # only want those with citations
-                # or containing or surrounded by segments with qp 
-                if tcpID in qp_indices: 
-                    if sidx+1 in qp_indices[tcpID]: return False 
-                    if sidx-1 in qp_indices[tcpID]: return False
-                    if sidx in qp_indices[tcpID]: return False 
-                if sidx-1 in c_dict[tcpID]: return False 
-                if sidx+1 in c_dict[tcpID]: return False 
-                return True 
+            # def skip(sidx): 
+            #     # only want those with citations
+            #     # or containing or surrounded by segments with qp 
+            #     if tcpID in qp_indices: 
+            #         if sidx+1 in qp_indices[tcpID]: return False 
+            #         if sidx-1 in qp_indices[tcpID]: return False
+            #         if sidx in qp_indices[tcpID]: return False 
+            #     if sidx-1 in c_dict[tcpID]: return False 
+            #     if sidx+1 in c_dict[tcpID]: return False 
+            #     return True 
             
             if tcpID not in c_dict: 
                 c_dict[tcpID] = {} 
 
             for e in encoding: 
                 sidx = e['sent_idx']
+                e['cite_label'] = None 
                 if isinstance(e['token'],float): 
                     continue 
                 if sidx not in c_dict[tcpID]: 
                     e['cite_tag'] = 'O'
-                    if skip(sidx): 
-                        continue  
+                    # if skip(sidx): 
+                    #     continue  
                 elif e['token'].strip(".,") in c_dict[tcpID][sidx][0]: 
                     e['cite_tag'] = 'B-S' 
                     e['cite_label'] = c_dict[tcpID][sidx][2]
@@ -102,9 +103,9 @@ for era in corpora:
                     e['qp_tag'] = False 
                 citation_enc.append(e) 
             df = pd.DataFrame(citation_enc)
-            new_order = ['token', 'sent_idx' ,
-                         'cite_tag' , 'cite_label' , 'qp_tag' , 'qp_label',
-                         'pos' , 'regular' ,'lemma','note_tag','it_tag',
-                         'section_idx','paragraph_idx','section_name'
-                         ]
+            # new_order = ['token', 'sent_idx' ,
+            #              'cite_tag' , 'cite_label' , 'qp_tag' , 'qp_label',
+            #              'pos' , 'regular' ,'lemma','note_tag','it_tag',
+            #              'section_idx','paragraph_idx','section_name'
+            #              ]
             df.to_csv(f"/Users/amycweng/DH/EEPS/encodings_new/{tcpID}_encoded.csv",index=False)
