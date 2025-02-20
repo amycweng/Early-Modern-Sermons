@@ -6,6 +6,10 @@ def adorn(group):
     os.chdir('/Users/amycweng/DH/morphadorner-2')
     subprocess.run(['./adornplainemetext', f"{repo}/assets/adorned", f"{repo}/assets/plain_body/{group}*.txt"])
 
+# repo = '/Users/amycweng/DH/Early-Modern-Sermons' # github repo 
+# os.chdir('/Users/amycweng/DH/morphadorner-2')
+# subprocess.run(['./adornplainemetext', f"{repo}/lib", f"{repo}/lib/sample.txt"])
+
 if __name__ == "__main__": 
     with open('../assets/corpora.json','r') as file: 
         corpora = json.load(file)

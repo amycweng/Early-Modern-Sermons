@@ -97,8 +97,9 @@ if __name__ == "__main__":
         corpora = json.load(file)
     
     for era in corpora:  
-        for prefix,tcpIDs in corpora[era].items():  
+        for prefix,tcpIDs in corpora[era].items(): 
             tcpIDs = sorted(tcpIDs)
             tcpIDs = [tcpID for tcpID in tcpIDs if tcpID in already_adorned]
             if len(tcpIDs) == 0: continue
             process_prefix(tcpIDs,era)
+

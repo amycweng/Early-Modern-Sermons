@@ -44,11 +44,11 @@ def extract(tcpID, filepath):
             for gap in t.find_all("GAP"):
                 if gap["DESC"] == "foreign": 
                     gap.string = " NONLATINALPHABET " # 〈 in non-Latin alphabet 〉
-                elif "DISP" in gap.attrs: 
-                    disp = gap["DISP"]
-                    disp = re.sub("•","^",disp) # illegible letters 
-                    disp = re.sub("◊","*",disp) # illegible words 
-                    gap.string = disp
+                # elif "DISP" in gap.attrs: 
+                #     disp = gap["DISP"]
+                #     disp = re.sub("•","\^",disp) # illegible letters 
+                #     disp = re.sub("◊","\*",disp) # illegible words 
+                #     gap.string = disp
             for italics in t.find_all("HI"):
                 italics.string = f" STARTITALICS {italics.text} ENDITALICS "
             for item in t.find_all(["NOTE"]):
@@ -62,7 +62,7 @@ def extract(tcpID, filepath):
         text = re.sub(r"[\{\}\[\]]","",text)
         section_type = doc.get("TYPE").lower().split(" ")
         section_type = "_".join(section_type)
-        text = f"{f' SECTION{idx}:{section_type}'} {text}"
+        text = f"{f' SECTION{idx}^{section_type}'} {text}"
         text = re.sub(r"\s+"," ",text)
             # wanted_types = ["sermon","part","text","treatise","discourse","appendix", "funeral sermon","body of text","verse",
     #             "biblical commentary","treatise","tract","doctrine",
@@ -74,11 +74,11 @@ def extract(tcpID, filepath):
         if re.search(r"sermon|speech|oratio|homil|eulog|lecture|encomi|exhortation|memorial|consolatio",section_type): 
             num_sermons += 1 
             body_text.append(text)
-        elif re.search(r"part|text|treatise|doctrine|book|conclusion|polemic|lamentation|essay|discourse|tract|criticism|response|animadversion|observation|disputation|allegations|extract|exposition|refutation|discourse|examination|comment|remarks|panegyric|censure|analysis|volume|articles|chapter|typological_category|section",section_type): 
+            doc_text.append(f' SECTION{idx}^{section_type}')
+        elif re.search(r"part|text|treatise|doctrine|book|conclusion|polemic|lamentation|essay|discourse|tract|criticism|response|animadversion|observation|disputation|allegations|extract|exposition|refutation|discourse|examination|comment|remarks|panegyric|censure|analysis|volume|articles|chapter|errata|typological_category|section",section_type): 
             body_text.append(text)
-        # doc_text.append(text)
-    # with open(f"../assets/plain_all/{tcpID}.txt","w+") as file:
-    #     file.writelines(" ".join(doc_text)) # write as one long string
+    with open(f"../assets/plain_all/{tcpID}.txt","w+") as file:
+        file.writelines(" ".join(doc_text)) # write as one long string
     if len(body_text) > 0: 
         with open(f"../assets/plain_body/{tcpID}.txt","w+") as file:
             file.writelines(" ".join(body_text)) # write as one long string          
