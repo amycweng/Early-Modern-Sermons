@@ -1,7 +1,24 @@
 from bs4 import BeautifulSoup, SoupStrainer
 import re,sys,os
 sys.path.append('../') 
+from lib.dictionaries.sermon_annotations import * 
 TCP = '/Users/amycweng/DH/TCP'
+
+wanted_sections = [
+    'text','treatise','part','tract','lecture','lectures','chapter','book',
+    'discourse','commentary','doctrine','application','conclusion',
+    'exposition','body_of_text','homily','memorial','funeral_sermon',
+    'extracts_from_sermon','oration_and_sermon','collection_of_lectures',
+    'collection_of_sermons_on_isaiah','collection_of_sermons_on_haggai',
+    'whit_sunday_sermons','ordination_sermons','penitential_sermons_preached_at_wells',
+    'sermon_extract','application_of_sermon','summary_of_sermons',
+    'two_sermons','greek_text_bound_with_sermon','collection_of_sermons','visitation_sermon',
+]
+wanted_sections = {s:None for s in wanted_sections}
+def isSermon(section_name): 
+    if re.search(r"^sermon",section_name): 
+        return True 
+    return False 
 
 def findTextTCP(id):
     if re.match('B1|B4',id[0:2]):
@@ -21,82 +38,136 @@ def extract(tcpID, filepath):
     tag = SoupStrainer("DIV1")
     soup = BeautifulSoup(data,features="xml",parse_only=tag)
     
-    contents = soup.find_all(['DIV1'])
+    contents = soup.find_all(['DIV1', 'DIV2', 'DIV3', 'DIV4', 'DIV5', 'DIV6', 'DIV7'])
 
-    doc_text = []
-    body_text = []
+    div_text = []
     num_sermons = 0
     # need to place delimiters between each sermon, marginal note, and page
     p_idx = 0 
-    for idx, doc in enumerate(contents):
-        n_idx = 0 # note's relative position within doc
-        for t in doc.find_all(['PB']):
-            # page numbers 
-            if t.name == "PB" and "N" in t.attrs: 
-                page = t["N"]
-                t.string = f' PAGE{page} '
-            else: 
-                page = t["REF"]
-                t.string = f' PAGEIMAGE{page} '
-
-        for t in doc.find_all(['P']):
-            # show display characters for GAP elements (illegible characters, non-Latin alphabet) 
-            for gap in t.find_all("GAP"):
-                if gap["DESC"] == "foreign": 
-                    gap.string = " NONLATINALPHABET " # 〈 in non-Latin alphabet 〉
-                # elif "DISP" in gap.attrs: 
-                #     disp = gap["DISP"]
-                #     disp = re.sub("•","\^",disp) # illegible letters 
-                #     disp = re.sub("◊","\*",disp) # illegible words 
-                #     gap.string = disp
-            for italics in t.find_all("HI"):
-                italics.string = f" STARTITALICS {italics.text} ENDITALICS "
-            for item in t.find_all(["NOTE"]):
-                if item.name == "NOTE":
-                    # add note delimiters 
-                    item.string = f" STARTNOTE{n_idx} {item.text} ENDNOTE{n_idx} "
-                    n_idx += 1 
-            t.string = f" STARTPARAGRAPH{p_idx} {t.text} "
-            p_idx += 1 
-        text = re.sub(r"[^\x00-\x7F]","",str(doc.text))
-        text = re.sub(r"[\{\}\[\]]","",text)
-        section_type = doc.get("TYPE").lower().split(" ")
+    section_count = 0 
+    for div in contents:
+        toAdd = False 
+        section_name = div.name 
+        section_idx = "" 
+        if "N" in div.attrs: 
+            section_idx = div["N"]
+        section_type = div.get("TYPE").lower().split(" ")
         section_type = "_".join(section_type)
-        text = f"{f' SECTION{idx}^{section_type}'} {text}"
-        text = re.sub(r"\s+"," ",text)
-            # wanted_types = ["sermon","part","text","treatise","discourse","appendix", "funeral sermon","body of text","verse",
-    #             "biblical commentary","treatise","tract","doctrine",
-    #             "lecture", "book","conclusion","section","commentary","chapter",
-    #             "panegyric","funeral speech","arguments","homily","colophon","polemic",
-    #             "scaffold speech","speech","lamentation","essay","theological discourse",
-    #             "memorial","consolatio","religious tract","oration and sermon","hymns",
-    #             "vindication","scripture","criticism","observation","mock sermon"]
-        if re.search(r"sermon|speech|oratio|homil|eulog|lecture|encomi|exhortation|memorial|consolatio",section_type): 
+
+        if tcpID in custom_subsections: 
+            if section_name in custom_subsections[tcpID]:
+                if (section_type,section_idx) == custom_subsections[tcpID][section_name]: 
+                    toAdd = True  
+        elif tcpID in sermon_subsections: 
+            if section_type == "sermon": 
+                toAdd = True 
+        elif section_name == "DIV1":
+            if tcpID in custom: 
+                annotated = custom[tcpID]
+                if isinstance(annotated,str): 
+                    annotated = [annotated]
+                if section_type in custom[tcpID]: 
+                    toAdd = True
+            elif tcpID in custom_exceptions: 
+                if section_type in custom_exceptions[tcpID]:
+                    if section_count in custom_exceptions[tcpID][section_type]: 
+                        toAdd = True 
+                    section_count += 1
+            else: 
+                if isSermon(section_type): 
+                    toAdd = True  
+                elif section_type in wanted_sections: 
+                    if tcpID not in sermons: 
+                        toAdd = True 
+        
+        if toAdd: 
             num_sermons += 1 
-            body_text.append(text)
-            doc_text.append(f' SECTION{idx}^{section_type}')
-        elif re.search(r"part|text|treatise|doctrine|book|conclusion|polemic|lamentation|essay|discourse|tract|criticism|response|animadversion|observation|disputation|allegations|extract|exposition|refutation|discourse|examination|comment|remarks|panegyric|censure|analysis|volume|articles|chapter|errata|typological_category|section",section_type): 
-            body_text.append(text)
-    with open(f"../assets/plain_all/{tcpID}.txt","w+") as file:
-        file.writelines(" ".join(doc_text)) # write as one long string
-    if len(body_text) > 0: 
-        with open(f"../assets/plain_body/{tcpID}.txt","w+") as file:
-            file.writelines(" ".join(body_text)) # write as one long string          
+            text = []
+            # text = re.sub(r"[^\x00-\x7F]","",str(div.text))
+            # text = re.sub(r"[\{\}\[\]]","",text)
+            for page_info in div.find_all(['PB']):
+                if "N" in page_info.attrs: 
+                    page = page_info["N"]
+                    page = f' PAGE{page} '
+                else: 
+                    page = page_info["REF"]
+                    page = f' PAGEIMAGE{page} '
+                page_info.string = page
+
+            n_idx = 0 # note's relative position within div
+            for t in div.find_all(['P']):
+                for gap in t.find_all("GAP"):
+                    if gap["DESC"] == "foreign": 
+                        gap.string = " NONLATINALPHABET " # 〈 in non-Latin alphabet 〉
+                    elif gap["DESC"] == "missing":
+                        gap.string = "^".join(gap["EXTENT"].upper().split(" ")) + "^MISSING"
+                    elif gap["DESC"] == "illegible": 
+                        if "DISP" in gap.attrs: 
+                            disp = gap["DISP"]
+                            # disp = re.sub("•","\^",disp) # illegible letters 
+                            # disp = re.sub("◊","\*",disp) # illegible words 
+                            gap.string = gap["DISP"]
+                for italics in t.find_all("HI"):
+                    italics.string = f" STARTITALICS {italics.text} ENDITALICS "
+                for item in t.find_all(["NOTE"]):
+                    if item.name == "NOTE":
+                        # add note delimiters 
+                        item.string = f" STARTNOTE{n_idx} {item.text} ENDNOTE{n_idx} "
+                        n_idx += 1 
+                t.string = f" STARTPARAGRAPH{p_idx} {t.text} "
+                p_idx += 1 
+                
+
+            for child in div.children:
+                if child.name in ['DIV1', 'DIV2', 'DIV3', 'DIV4', 'DIV5', 'DIV6', 'DIV7']:
+                    ss_type = "_".join(child.get("TYPE").lower().split(" "))
+                    ss_N = ""
+                    if "N" in child.attrs: 
+                        ss_N = child["N"]
+                    text.append(f" {child.name}^{ss_type}^{ss_N} " + child.get_text() + " ")
+                
+                else: 
+                    text.append(" " + child.get_text() + " ")
+            text = f" {f' {section_name}^{section_type}^{section_idx}'} {' '.join(text).strip()} "
+            if tcpID in custom_pages: 
+                position = text.find(custom_pages[tcpID])
+                preceding = re.findall(r'(\bDIV[\d+\_\w+\^]+)\s', text[:position])
+                text = " ".join(preceding) + " " + text[position:]
+            div_text.append(text)
+        else: 
+            div_text.append(f' {section_name}^{section_type}^{section_idx}')
+    
+    with open(f"../assets/plain_body/{tcpID}.txt","w+") as file:
+        div_text = re.sub(r"\s+"," "," ".join(div_text).strip())
+        file.writelines(div_text) # write as one long string         
     return num_sermons
 
 from tqdm import tqdm 
 import pandas as pd 
 
 if __name__ == "__main__": 
-    tcpIDs = pd.read_csv(f"../assets/sermons.csv")['id']
-    tcpIDs = list(tcpIDs)
-    tcpIDs.extend(pd.read_csv("../assets/sermons_missing.csv")['id'])
-    tcpIDs = sorted(tcpIDs)
+    # tcpIDs = ["A80317"] # ["A50253", "A92163","A02181","A22562", "A42583"] #
+    
+    # tcpIDs = custom_subsections.keys() # 3  
+    # tcpIDs = custom_exceptions.keys() # 18 
+    # tcpIDs = custom_pages.keys() # 2 
+    # tcpIDs = sorted(custom.keys()) # 638
+    # tcpIDs = sorted(sermons_missing.keys()) # 2658+39
+    # tcpIDs = sorted(sermons.keys()) # 10,071
+    tcpIDs = sermon_subsections.keys() # 2413
+    # tcpIDs = ['A13812', 'A21069', 'A43399', 'A44308', 'A44843', 'A46371', 'A48172', 'A58328']
+    
+    
     progress_bar = tqdm(tcpIDs)
     num_sermons = 0 
-    for tcpID in progress_bar: 
-        progress_bar.set_description(tcpID)
+    missing = []
+    for idx, tcpID in enumerate(progress_bar): 
+        progress_bar.set_description(f"{tcpID}, {num_sermons} so far")
         fp = findTextTCP(tcpID)
-        num_sermons += extract(tcpID, fp)
-    print(f"{num_sermons} primary sections in these texts are originally oral.")
+        num = extract(tcpID, fp)
+        if num == 0: 
+            missing.append(tcpID)
+        num_sermons += num
+    print(missing)
+    print(f"{num_sermons} sermon-related sections")
         
