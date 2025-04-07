@@ -2,23 +2,7 @@ from bs4 import BeautifulSoup, SoupStrainer
 import re,sys,os
 sys.path.append('../') 
 from lib.dictionaries.sermon_annotations import * 
-TCP = '/Users/amycweng/DH/TCP'
-
-
-def isSermon(section_name): 
-    if re.search(r"^sermon",section_name): 
-        return True 
-    return False 
-
-def findTextTCP(id):
-    if re.match('B1|B4',id[0:2]):
-        path = f'{TCP}/P2{id[0:2]}/{id}.P4.xml'
-    else: 
-        if f'{id}.P4.xml' in os.listdir(f'{TCP}/P1{id[0:2]}'):
-            path = f'{TCP}/P1{id[0:2]}/{id}.P4.xml'
-        elif f'{id}.P4.xml' in os.listdir(f'{TCP}/P2{id[0:2]}'): 
-            path = f'{TCP}/P2{id[0:2]}/{id}.P4.xml'
-    return path 
+from EEPS_helper import * 
 
 def extract(tcpID, filepath):
     # read the input XML file 
@@ -42,6 +26,7 @@ def extract(tcpID, filepath):
         if "N" in div.attrs: 
             section_idx = div["N"]
         section_type = div.get("TYPE").lower().split(" ")
+        section_type_output = "\^".join(section_type)
         section_type = "_".join(section_type)
 
         if tcpID in custom_subsections: 
@@ -74,7 +59,6 @@ def extract(tcpID, filepath):
             num_sermons += 1 
             text = []
             # text = re.sub(r"[^\x00-\x7F]","",str(div.text))
-            # text = re.sub(r"[\{\}\[\]]","",text)
             for page_info in div.find_all(['PB']):
                 if "N" in page_info.attrs: 
                     page = page_info["N"]
@@ -110,7 +94,7 @@ def extract(tcpID, filepath):
 
             for child in div.children:
                 if child.name in ['DIV1', 'DIV2', 'DIV3', 'DIV4', 'DIV5', 'DIV6', 'DIV7']:
-                    ss_type = "_".join(child.get("TYPE").lower().split(" "))
+                    ss_type = "\^".join(child.get("TYPE").lower().split(" "))
                     ss_N = ""
                     if "N" in child.attrs: 
                         ss_N = child["N"]
@@ -118,14 +102,15 @@ def extract(tcpID, filepath):
                 
                 else: 
                     text.append(" " + child.get_text() + " ")
-            text = f" {f' {section_name}^{section_type}^{section_idx}'} {' '.join(text).strip()} "
+            text = f" {f' {section_name}^{section_type_output}^{section_idx}'} {' '.join(text).strip()} "
+            text = re.sub(r"|","",text)
             if tcpID in custom_pages: 
                 position = text.find(custom_pages[tcpID])
                 preceding = re.findall(r'(\bDIV[\d+\_\w+\^]+)\s', text[:position])
                 text = " ".join(preceding) + " " + text[position:]
             div_text.append(text)
         else: 
-            div_text.append(f' {section_name}^{section_type}^{section_idx}')
+            div_text.append(f' {section_name}^{section_type_output}^{section_idx}')
     
     with open(f"../assets/plain_body/{tcpID}.txt","w+") as file:
         div_text = re.sub(r"\s+"," "," ".join(div_text).strip())
@@ -136,17 +121,12 @@ from tqdm import tqdm
 import pandas as pd 
 
 if __name__ == "__main__": 
-    # tcpIDs = ["A80317"] # ["A50253", "A92163","A02181","A22562", "A42583"] #
-    
-    # tcpIDs = custom_subsections.keys() # 3  
-    # tcpIDs = custom_exceptions.keys() # 18 
-    # tcpIDs = custom_pages.keys() # 3 
-    # tcpIDs = sorted(custom.keys()) # 638+64
-    # tcpIDs = sorted(sermons_missing.keys()) # 2658+39
-    # tcpIDs = sorted(sermons.keys()) # 10,075
-    tcpIDs = sorted(sermon_subsections) # 2413    
 
-    progress_bar = tqdm(tcpIDs)
+    all_sermons = list(sermons.keys())
+    all_sermons.extend(sermons_missing.keys())
+    tcpIDs = sorted(all_sermons) 
+    
+    progress_bar = tqdm(tcpIDs) 
     num_sermons = 0 
     missing = []
     for idx, tcpID in enumerate(progress_bar): 

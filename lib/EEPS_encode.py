@@ -3,16 +3,12 @@ import sys
 sys.path.append('../')
 from lib.standardization import * 
 from lib.EEPS_sentences import *
-from lib.sermons import *
+from lib.EEPS_sermons import *
 from lib.citations import *  
+from EEPS_helper import * 
 
 import pandas as pd 
 from tqdm import tqdm 
-sermons_metadata = pd.read_csv("../assets/sermons.csv")
-sermons = sorted(sermons_metadata["id"])
-
-def get_ids(group): 
-    return sorted([tcpID for tcpID in sermons if group in tcpID])
 
 # primary key is (sent_idx, text_idx)
 columns = ['sent_idx', 'text_idx', 'is_note', 'encoding']

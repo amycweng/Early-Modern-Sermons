@@ -2,17 +2,13 @@ import re,json
 import sys 
 sys.path.append('../')
 from lib.standardization import * 
-from lib.sentences import *
-from lib.sermons import *
+from lib.EEPS_sentences import *
+from lib.EEPS_sermons import *
 from lib.citations import *  
+from EEPS_helper import * 
 
 import pandas as pd 
 from tqdm import tqdm 
-sermons_metadata = pd.read_csv("../assets/sermons.csv")
-sermons = sorted(sermons_metadata["id"])
-
-def get_ids(group): 
-    return sorted([tcpID for tcpID in sermons if group in tcpID])
 
 # primary key is (sent_idx, text_idx)
 columns = ['sent_idx', 'text_idx', 'is_note', 'encoding']
@@ -99,7 +95,7 @@ def process_prefix(tcpIDs,era,prefix):
     info = {}
     progress = tqdm(tcpIDs)
     for tcpID in progress:
-        # if tcpID != "B10040": continue 
+        if tcpID != "A00003": continue 
         progress.set_description(era + " " + tcpID) 
         m, s, i = encode(tcpID)
         margins[tcpID] = m 
@@ -107,7 +103,7 @@ def process_prefix(tcpIDs,era,prefix):
         info[tcpID] = i 
 
     PROCESS_SERMONS(era,prefix,texts,margins,info)
-    PROCESS_CITATIONS(era,prefix)
+    # PROCESS_CITATIONS(era,prefix)
 
 import os 
 if __name__ == "__main__": 
@@ -116,7 +112,6 @@ if __name__ == "__main__":
 
     with open('../assets/corpora.json','r') as file: 
         corpora = json.load(file)
-    
     for era in corpora:
         for prefix,tcpIDs in corpora[era].items(): 
             tcpIDs = sorted(tcpIDs)

@@ -70,7 +70,7 @@ custom = {
         'A04154':'section',
         'A12524':'commentary_on_acts_8',
         'A33528':'polemic',
-        'A01956':'biblical_commentary',
+        'A01956':'biblical_commentary', # being the summe of diuerse sermons preached in S. Gregories London 
         'B27727':'chapter',
         'A04378':'section',
         'A81950':'preface', # 'chapter' is DIV2 under 'preface'
@@ -251,7 +251,7 @@ custom = {
         'A14927':'dialogue', # "The cure of a hard-heart First preached in diuers sermons, by Master Welsthed, resident at Bloxford in Dorcetshire. Since digested into questions and answers for the hungrie."
         'A81606':'letter', # Children's sermons; "A salutation and seasonable exhortation to children."
         'A26065':'document', # "Evangelium armatum, A specimen, or short collection of several doctrines and positions destructive to our government, both civil and ecclesiastical preached and vented by the known leaders and abetters of the pretended reformation such as Mr. Calamy, Mr. Jenkins, Mr. Case, Mr. Baxter, Mr. Caryll, Mr. Marshall, and others, &c."
-        'A90476':'newsbook', # "with the chief heads of his Lordships funerall-sermon, preached by Mr. Bowles."
+        'A90476':'newsbook', # "with the chief heads of his Lordships funerall-sermon, preached by Mr. Bowles." 
 }
 
 custom_exceptions = {
@@ -267,6 +267,7 @@ custom_exceptions = {
         'A10242':{'text':[1]}, # the SECOND text of two; "together with a short meditation vpon 2. Sam. 24.15., preached at a weekely lecture in Deuon"
         'A77497':{'treatise':[1,2,3,4]}, # the SECOND to FIFTH treatises; with a sermon on Mark 10-16 "As it was some time since preached in the church of Great Yarmouth"; the first treatise may not have been preached
         'A69511':{'part':[1]}, # <P><PB N="13" REF="8"/> ; the SECOND part -- exclude the contents within the <LETTER></LETTER> and <LIST></LIST>. Begin with the following: <P><PB N="13" REF="8"/>
+        'A03634':{'prefatory_letter':[1]} # <DIV1 TYPE="prefatory letter">; [An homelye to be read in the tyme of pestylence]
 }
 
 
@@ -302,25 +303,3 @@ sermon_subsections = ['A00593', 'A01628', 'A02178', 'A02609', 'A02883', 'A03272'
                       'A16333', 'A43632', 'A47044', 'A84421', 'A88281']
 sermon_subsections = {s:None for s in sermon_subsections}
 
-
-# {
-#         'A67927': ['DIV2','DIV3'],
-#         'A42583': ['DIV2'],
-#         'A93063': ['DIV2'],
-#         'A19986': ['DIV3'],
-#         'A96278': ['DIV2'],
-#         'A59582': ['DIV2','DIV3'],
-#         'A10394': ['DIV2'],
-#         'A33980': ['DIV2'],
-#         'A51443': ['DIV3'],
-#         'A51443': ['DIV2'],
-#         'A14032': ['DIV2'],
-#         'A77357': ['DIV3'],
-#         'A77632': ['DIV2'],
-#         'A76329': ['DIV2'],
-#         'A50253': ['DIV2'], # there are 30 typological_category sections, which each contain a DIV2 sermon section 
-#         'A16087': ['DIV2'],
-#         'A30243': ['DIV3'],
-#         'A77998': ['DIV2'], 
-#         'A18973': ['DIV2']
-# }

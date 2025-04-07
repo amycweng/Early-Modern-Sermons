@@ -3,6 +3,7 @@ import sys
 sys.path.append('../')
 from lib.dictionaries.abbreviations import * 
 from lib.decomposition import * 
+from EEPS_helper import * 
 numBook_to_proper = {v:k for k,v in numBook.items()}
 
 def extract_citations(n):
@@ -97,28 +98,8 @@ def clean_word(word):
     word = re.sub(r"(?<=\w)y(?=\w)","i",word) # replace y's that occur within words into i's
     return word 
 
-# convert a roman numeral to its integer format 
 # The longest book in the Bible is Psalms with 150 chapters, 
 # and the longest chapter (Psalms 119) has 176 verses
-roman_to_int = {"i": 1, "v": 5, "x": 10, "l": 50, "c": 100, "d": 500, "m": 1000}
-def convert_numeral(word):
-    orig_word = word
-    word = re.sub(r"[^\w]", "",word)
-    
-    word = word.lower().strip(".") # strip period if Roman numeral 
-    if not re.search(r'^(c{0,3})(xc|xl|l?x{0,3})(ix|iv|v?i{0,3})$', word): 
-        return orig_word 
-    num = 0
-    for idx, n in enumerate(word):
-        if idx > 0 and roman_to_int[n] > roman_to_int[word[idx - 1]]:
-            # case where we are one less than a multiple of ten or five (e.g., IX or IV)
-            num += roman_to_int[n] - 2 * roman_to_int[word[idx - 1]]
-        else:
-            num += roman_to_int[n] 
-    if num > 0: 
-        return str(num)
-    else: 
-        return orig_word 
 
 '''Standardize abbreviations'''
 num_to_text = {'1':'one','2':'two','3':'three','4':'four'}

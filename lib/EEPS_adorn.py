@@ -13,25 +13,19 @@ def adorn(group):
 if __name__ == "__main__": 
     already_adorned = os.listdir('../assets/adorned')
     already_adorned = {k.split(".txt")[0]:None for k in already_adorned}
-   
-    # with open('../assets/corpora.json','r') as file: 
-    #     corpora = json.load(file)
-    # era_name = input('Enter subcorpus name: ')
-    # selected_prefix = input("Enter prefix or All: ")
-    # if selected_prefix == "All":
-    #     for prefix,tcpIDs in corpora[era_name].items(): 
-    #         for tcpID in sorted(tcpIDs): 
-    #             if tcpID not in already_adorned: 
-    #                 adorn(tcpID)
-    # else: 
-    #     for tcpID in sorted(corpora[era_name][selected_prefix]):
-    #         if tcpID not in already_adorned: 
-    #             adorn(tcpID)
+    
+    sermons = pd.read_csv("../assets/sermons.csv")
+    all_sermons = list(sermons['id'])
+    sermons_missing = pd.read_csv("../assets/sermons_missing.csv")
+    all_sermons.extend(list(sermons_missing['id']))
+    tcpIDs = sorted(all_sermons) 
 
-    tcpIDs = ["A02181","A22562"]
-    for tcpID in sorted(tcpIDs): 
-        if tcpID not in already_adorned: 
-            adorn(tcpID)
+    prefix = input("Enter prefix: ")
+    for tcpID in tcpIDs: 
+        if prefix in tcpID:  # A0, B
+            if tcpID not in already_adorned: 
+                adorn(tcpID)
+
 
 # Roman numerals are sometimes labeled as np (proper noun), e.g., from B31833
 #     EZEK	EZEK	np1	EZEK	EZEK	0
