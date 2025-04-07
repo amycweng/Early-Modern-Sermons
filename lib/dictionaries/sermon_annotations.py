@@ -8,6 +8,17 @@ sermons_missing = pd.read_csv("../assets/sermons_missing.csv")
 sermons_missing = sermons_missing.to_dict(orient='records')
 sermons_missing = {s['id']:None for s in sermons_missing}
 
+wanted_sections = [
+    'text','treatise','part','tract','lecture','lectures','chapter','book',
+    'discourse','commentary','doctrine','application','conclusion',
+    'exposition','body_of_text','homily','memorial','funeral_sermon',
+    'extracts_from_sermon','oration_and_sermon','collection_of_lectures',
+    'collection_of_sermons_on_isaiah','collection_of_sermons_on_haggai',
+    'whit_sunday_sermons','ordination_sermons','penitential_sermons_preached_at_wells',
+    'sermon_extract','application_of_sermon','summary_of_sermons',
+    'two_sermons','greek_text_bound_with_sermon','collection_of_sermons','visitation_sermon',
+]
+wanted_sections = {s:None for s in wanted_sections}
 custom = {
         'A81042': 'letter',
         'A64811': 'class',
@@ -231,6 +242,16 @@ custom = {
         'A13535':'part', # Preached in Cambridge by Thomas Taylor
         'A68733':'part', # Being the substance of divers sermons preached at Grayes Inne. By that reverend divine, Richard Sibbes, D.D. and sometimes preacher to that honourable society. -----------  Early works to 1800. -- Holy Spirit
         'A80317':'text', # <PB N="5" REF="3" MS="y"/> ;  Contains the substance of the sermon preached to them
+        'A89104':'letter', # "A message from the Isle of Wight, brought by Major Cromwell...Also the chiefe heads of Bishop Ushers sermon"
+        'B12473':'subpoena', # "A sub-poena from the star-chamber of heauen A sermon preached at Pauls Crosse"
+        'A73832':'dialogue', #, "Taken, for the most part, out of the ten sermons of Mr I. Dod, and Mr. R. Cleaver"
+        'A56791':'abstract', # "Jesus is God, or, The deity of Jesus Christ vindicated being an abstract of some sermons preach'd in the parish-church of St. James, Clerkenwell / by D. Pead."
+        'A03696':'commentary_on_luke', # "Of the rich man and Lazarus Certaine sermons, by Robert Horne."
+        'A60568':'life', # "The life and death of Mr. William Moore, late fellow of Caius Colledge, and keeper of the University-Library as it was delivered in a sermon preached at his funeral-solemnity"
+        'A14927':'dialogue', # "The cure of a hard-heart First preached in diuers sermons, by Master Welsthed, resident at Bloxford in Dorcetshire. Since digested into questions and answers for the hungrie."
+        'A81606':'letter', # Children's sermons; "A salutation and seasonable exhortation to children."
+        'A26065':'document', # "Evangelium armatum, A specimen, or short collection of several doctrines and positions destructive to our government, both civil and ecclesiastical preached and vented by the known leaders and abetters of the pretended reformation such as Mr. Calamy, Mr. Jenkins, Mr. Case, Mr. Baxter, Mr. Caryll, Mr. Marshall, and others, &c."
+        'A90476':'newsbook', # "with the chief heads of his Lordships funerall-sermon, preached by Mr. Bowles."
 }
 
 custom_exceptions = {
@@ -248,10 +269,13 @@ custom_exceptions = {
         'A69511':{'part':[1]}, # <P><PB N="13" REF="8"/> ; the SECOND part -- exclude the contents within the <LETTER></LETTER> and <LIST></LIST>. Begin with the following: <P><PB N="13" REF="8"/>
 }
 
+
 custom_pages = {
         'A80317':'PAGE5', # <PB N="5" REF="3" MS="y"/> ;  Contains the substance of the sermon preached to them
         'A69511':'PAGE13', # <P><PB N="13" REF="8"/> ; the SECOND part -- exclude the contents within the <LETTER></LETTER> and <LIST></LIST>. Begin with the following: <P><PB N="13" REF="8"/>
+        'A90476':'PAGE2'
 }
+
 custom_subsections = {
         'A28857': {'DIV2':('section','5')},
         'A13078': {'DIV1':('book','1')}, # <DIV1 N="1" TYPE="book">; the second one is a discourse expanding on his sermon

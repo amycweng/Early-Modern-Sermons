@@ -4,17 +4,7 @@ sys.path.append('../')
 from lib.dictionaries.sermon_annotations import * 
 TCP = '/Users/amycweng/DH/TCP'
 
-wanted_sections = [
-    'text','treatise','part','tract','lecture','lectures','chapter','book',
-    'discourse','commentary','doctrine','application','conclusion',
-    'exposition','body_of_text','homily','memorial','funeral_sermon',
-    'extracts_from_sermon','oration_and_sermon','collection_of_lectures',
-    'collection_of_sermons_on_isaiah','collection_of_sermons_on_haggai',
-    'whit_sunday_sermons','ordination_sermons','penitential_sermons_preached_at_wells',
-    'sermon_extract','application_of_sermon','summary_of_sermons',
-    'two_sermons','greek_text_bound_with_sermon','collection_of_sermons','visitation_sermon',
-]
-wanted_sections = {s:None for s in wanted_sections}
+
 def isSermon(section_name): 
     if re.search(r"^sermon",section_name): 
         return True 
@@ -150,14 +140,12 @@ if __name__ == "__main__":
     
     # tcpIDs = custom_subsections.keys() # 3  
     # tcpIDs = custom_exceptions.keys() # 18 
-    # tcpIDs = custom_pages.keys() # 2 
-    # tcpIDs = sorted(custom.keys()) # 638
+    # tcpIDs = custom_pages.keys() # 3 
+    # tcpIDs = sorted(custom.keys()) # 638+64
     # tcpIDs = sorted(sermons_missing.keys()) # 2658+39
-    # tcpIDs = sorted(sermons.keys()) # 10,071
-    tcpIDs = sermon_subsections.keys() # 2413
-    # tcpIDs = ['A13812', 'A21069', 'A43399', 'A44308', 'A44843', 'A46371', 'A48172', 'A58328']
-    
-    
+    # tcpIDs = sorted(sermons.keys()) # 10,075
+    tcpIDs = sorted(sermon_subsections) # 2413    
+
     progress_bar = tqdm(tcpIDs)
     num_sermons = 0 
     missing = []
