@@ -223,5 +223,5 @@ class Segments():
                 elif self.curr_length >= 23 and re.search(r"\&|and|but|so|or|then|if|than",next_token.lower()):
                     # ensure that segments are not overly long 
                     self.add_segment()
-                elif self.curr_length >= 50 and next_token_non_punc[0].isupper():
+                elif self.curr_length >= 50 and re.search("\&|\,",token): # next_token_non_punc[0].isupper()
                         self.add_segment 
