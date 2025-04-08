@@ -2,7 +2,7 @@ import re,json
 import sys 
 sys.path.append('../')
 from lib.standardization import * 
-from lib.EEPS_sentences import *
+from lib.EEPS_segmenter import *
 from lib.EEPS_sermons import *
 from lib.citations import *  
 from EEPS_helper import * 
@@ -13,12 +13,12 @@ from tqdm import tqdm
 # primary key is (sent_idx, text_idx)
 columns = ['sent_idx', 'text_idx', 'is_note', 'encoding']
 def encode(tcpID): 
-    Text = Sentences(tcpID)
+    Text = Segments(tcpID)
     margins = []
     sents = {}
     info = {}
 
-    for sent_idx, tuple in enumerate(Text.sentences):
+    for sent_idx, tuple in enumerate(Text.segments):
         section_idx, start_page, paragraph, s, p, l = tuple 
         info[sent_idx] = (section_idx, start_page, paragraph)
 
@@ -29,10 +29,6 @@ def encode(tcpID):
             sentence.append(s[t])
             pos.append(p[t])
             standardized.append(l[t])
-            # elif t-1 >= 0: 
-            #     sentence[-1] = sentence[-1] + "."
-            #     pos[-1] = pos[-1] + "." # indicates that the period at end of the word is a sentence boundary and its own token
-            #     standardized[-1] = standardized[-1] + "."
 
         encoded = []
         start_note, in_note = False, False 
@@ -95,7 +91,7 @@ def process_prefix(tcpIDs,era,prefix):
     info = {}
     progress = tqdm(tcpIDs)
     for tcpID in progress:
-        if tcpID != "A00003": continue 
+        # if tcpID != "A00003": continue 
         progress.set_description(era + " " + tcpID) 
         m, s, i = encode(tcpID)
         margins[tcpID] = m 
@@ -114,6 +110,7 @@ if __name__ == "__main__":
         corpora = json.load(file)
     for era in corpora:
         for prefix,tcpIDs in corpora[era].items(): 
+
             tcpIDs = sorted(tcpIDs)
             tcpIDs = [tcpID for tcpID in tcpIDs if tcpID in already_adorned]
             if len(tcpIDs) == 0: continue

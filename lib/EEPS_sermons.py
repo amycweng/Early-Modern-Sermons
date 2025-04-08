@@ -198,6 +198,11 @@ def PROCESS_SERMONS(era,prefix,text,marginalia,info):
                 'tokens': combine_punc_with_text(segment), 
                 'standardized': combine_punc_with_text(standardized[",".join(key)])
             })
+            # body_formatted.append({
+            #     'tcpID': tcpID,
+            #     'pid': i[2], # paragraph index 
+            #     'tokens': combine_punc_with_text(segment), 
+            # })
         else: 
             for nid, part in segment.items(): 
                 margins_formatted.append({
@@ -209,7 +214,11 @@ def PROCESS_SERMONS(era,prefix,text,marginalia,info):
                 })
     
     if len(body_formatted) > 0: 
-    
+        # # for testing purposes: 
+        # with open(f'../assets/segments.csv','w+') as file: 
+        #     writer = csv.DictWriter(file, fieldnames=body_formatted[0].keys())
+        #     writer.writerows(body_formatted)
+
         with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_body.csv','w+') as file: 
             writer = csv.DictWriter(file, fieldnames=body_formatted[0].keys())
             writer.writerows(body_formatted)

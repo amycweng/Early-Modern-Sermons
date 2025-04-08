@@ -21,11 +21,13 @@ roman_to_int = {"i": 1, "v": 5, "x": 10, "l": 50, "c": 100, "d": 500, "m": 1000}
 def convert_numeral(word):
     orig_word = word
     word = re.sub(r"[^\w]", "",word)
-    
+
     word = word.lower().strip(".") # strip period if Roman numeral 
-    if not re.search(r'^(c{0,3})(xc|xl|l?x{0,3})(ix|iv|v?i{0,3})$', word): 
+    word = re.sub("j|J","i",word)
+    # up to 4 because there are "iiii" and "xxxx"
+    if not re.search(r'^(c{0,4})(xc|xl|l?x{0,4})(xi|x|ix|iv|vi|v?i{0,4})$', word): 
         return orig_word 
-    num = 0
+    num = 0 
     for idx, n in enumerate(word):
         if idx > 0 and roman_to_int[n] > roman_to_int[word[idx - 1]]:
             # case where we are one less than a multiple of ten or five (e.g., IX or IV)
@@ -36,6 +38,9 @@ def convert_numeral(word):
         return num
     else: 
         return orig_word 
+
+# print(convert_numeral('xlx'))
+# print(convert_numeral("cxlxi"))
 
 def get_page_number(token): 
     if re.search(r"\bPAGEIMAGE[\d+\w+]",token): 
@@ -63,7 +68,7 @@ def find_curr_page(idx, adorned):
             temp = adorned[idx_to_find_page]
             temp = temp.strip("\n").split("\t")
             if len(temp) == 0: continue
-            if re.search(r"\bPAGE[\d+\w+]",temp[0]):
+            if re.search(r"^PAGE[\d+\w+]",temp[0]):
                 prev_page_type, prev_page, previsRoman = get_page_number(temp[0])
             else: 
                 idx_to_find_page -= 1 
@@ -77,7 +82,7 @@ def find_curr_page(idx, adorned):
             temp = adorned[idx_to_find_page]
             temp = temp.strip("\n").split("\t")
             if len(temp) == 0: continue
-            if re.search(r"\bPAGE[\d+\w+]",temp[0]):
+            if re.search(r"^PAGE[\d+\w+]",temp[0]):
                 next_page_type, next_page, nextisRoman = get_page_number(temp[0])
             else: 
                 idx_to_find_page -= 1
