@@ -111,8 +111,10 @@ if __name__ == "__main__":
         corpora = json.load(file)
     for era in corpora:
         for prefix,tcpIDs in corpora[era].items(): 
-            # if era in ["pre-Elizabeth"]: continue 
-            # if prefix != "A": continue 
+            if era in ["pre-Elizabeth","Elizabeth","JamesI",  "CharlesI", "CivilWar","Interregnum","CharlesII"]: continue
+            if era == "JamesII":
+                if prefix  in ["B","A0","A1","A2"]: continue  
+
             tcpIDs = sorted(tcpIDs)
             tcpIDs = [tcpID for tcpID in tcpIDs if tcpID in already_adorned]
             if len(tcpIDs) == 0: continue

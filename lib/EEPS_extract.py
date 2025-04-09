@@ -19,8 +19,10 @@ def extract(tcpID, filepath):
     # need to place delimiters between each sermon, marginal note, and page
     p_idx = 0 
     section_count = 0 
+    last_added_section = None 
     for div in contents:
         toAdd = False 
+        
         section_name = div.name 
         section_idx = "" 
         if "N" in div.attrs: 
@@ -56,6 +58,7 @@ def extract(tcpID, filepath):
                         toAdd = True 
         
         if toAdd: 
+            last_added_section = section_name
             num_sermons += 1 
             text = []
             # text = re.sub(r"[^\x00-\x7F]","",str(div.text))
@@ -78,6 +81,9 @@ def extract(tcpID, filepath):
                     elif gap["DESC"] == "illegible": 
                         if "DISP" in gap.attrs: 
                             disp = gap["DISP"]
+                            if "page" in disp: 
+                                disp = re.sub(" ","^",disp)
+                                disp = disp+"^illegible"
                             # disp = re.sub("•","\^",disp) # illegible letters 
                             # disp = re.sub("◊","\*",disp) # illegible words 
                             gap.string = gap["DISP"]
@@ -95,6 +101,8 @@ def extract(tcpID, filepath):
             for child in div.children:
                 if child.name in ['DIV1', 'DIV2', 'DIV3', 'DIV4', 'DIV5', 'DIV6', 'DIV7']:
                     ss_type = "\^".join(child.get("TYPE").lower().split(" "))
+                    if re.search("table|errata|index",ss_type): 
+                        continue 
                     ss_N = ""
                     if "N" in child.attrs: 
                         ss_N = child["N"]
@@ -109,8 +117,11 @@ def extract(tcpID, filepath):
                 preceding = re.findall(r'(\bDIV[\d+\_\w+\^]+)\s', text[:position])
                 text = " ".join(preceding) + " " + text[position:]
             div_text.append(text)
+            # print('ADDED',f' {section_name}^{section_type_output}^{section_idx}', last_added_section)
         else: 
-            div_text.append(f' {section_name}^{section_type_output}^{section_idx}')
+            # print(f' {section_name}^{section_type_output}^{section_idx}', last_added_section)
+            if last_added_section is None or (int(last_added_section[-1]) > int(section_name[-1])): 
+                div_text.append(f' {section_name}^{section_type_output}^{section_idx} ')
     
     with open(f"../assets/plain_body/{tcpID}.txt","w+") as file:
         div_text = re.sub(r"\s+"," "," ".join(div_text).strip())
@@ -125,7 +136,7 @@ if __name__ == "__main__":
     all_sermons = list(sermons.keys())
     all_sermons.extend(sermons_missing.keys())
     tcpIDs = sorted(all_sermons) 
-    
+
     progress_bar = tqdm(tcpIDs) 
     num_sermons = 0 
     missing = []

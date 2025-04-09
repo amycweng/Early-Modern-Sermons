@@ -218,10 +218,10 @@ class Segments():
                     if nextidx < len(adorned): 
                         next = adorned[nextidx].split("\t")
                         next_token, next_pos,next_standard = next[0], next[2], next[3]
-                    if (re.match(r"\:|\;|\?|\\|\/|\!|\.",next_token) or EOS == "1"):
-                        self.update(next_token, next_pos, next_standard)
-                        adorned[nextidx] = ""
-                        continue
+                        if (re.match(r"\:|\;|\?|\\|\/|\!|\.",next_token) or EOS == "1"):
+                            self.update(next_token, next_pos, next_standard)
+                            adorned[nextidx] = ""
+                            continue
 
                 
                 ############ 
