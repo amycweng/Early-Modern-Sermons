@@ -67,11 +67,11 @@ class Sermons():
         marginalia = new_marginalia
         if len(marginalia) > 0: 
             self.create_corpus(marginalia,True)
-            print('Processed marginalia')
+            # print('Processed marginalia')
 
     def get_texts(self,texts):
         self.create_corpus(texts)
-        print('Processed texts')
+        # print('Processed texts')
 
     def create_corpus(self, data,is_margin=False):
       def check_foreign(fw): # at least three consecutive foreign words 
@@ -167,7 +167,7 @@ def PROCESS_SERMONS(era,prefix,text,marginalia,info):
     tcpIDs = corpora[era][prefix]
 
     if len(tcpIDs) == 0: return
-    print(era,prefix)
+    # print(era,prefix)
     tcpIDs = sorted(tcpIDs)
     corpus = Sermons(era,prefix,text,marginalia)
 
@@ -222,12 +222,12 @@ def PROCESS_SERMONS(era,prefix,text,marginalia,info):
         with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_body.csv','w+') as file: 
             writer = csv.DictWriter(file, fieldnames=body_formatted[0].keys())
             writer.writerows(body_formatted)
-            print(f'{prefix} body done')
+            # print(f'{prefix} body done')
 
         with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_margin.csv','w+') as file: 
             writer = csv.DictWriter(file, fieldnames=['tcpID','sid','nid','tokens','standardized'])
             writer.writerows(margins_formatted)
-            print(f'{prefix} marginalia done')
+            # print(f'{prefix} marginalia done')
 
         with open(f'../assets/foreign/{era}_{prefix}.json','w+') as file: 
             json.dump(corpus.fw_subchunks,file)

@@ -22,10 +22,13 @@ def convert_numeral(word):
     orig_word = word
     word = re.sub(r"[^\w]", "",word)
 
-    word = word.lower().strip(".") # strip period if Roman numeral 
+    word = word.lower()
+    word = re.sub("\.","",word) # strip period if Roman numeral 
     word = re.sub("j|J","i",word)
     # up to 4 because there are "iiii" and "xxxx"
     if not re.search(r'^(c{0,4})(xc|xl|l?x{0,4})(xi|x|ix|iv|vi|v?i{0,4})$', word): 
+        if word == "lxc": 
+            return 90
         return orig_word 
     num = 0 
     for idx, n in enumerate(word):
@@ -40,7 +43,12 @@ def convert_numeral(word):
         return orig_word 
 
 # print(convert_numeral('xlx'))
+# print(convert_numeral("cxlvii"))
 # print(convert_numeral("cxlxi"))
+# print(convert_numeral("xci"))
+# print(convert_numeral("lxc"))
+# print(convert_numeral("lxxxix"))
+# print(convert_numeral("lxxxviii"))
 
 def get_page_number(token): 
     if re.search(r"\bPAGEIMAGE[\d+\w+]",token): 
@@ -59,16 +67,18 @@ def get_page_number(token):
 # print(re.search(r"\bPAGE[\d+\w+]","PAGEXXVI"))
 
 
-def find_curr_page(idx, adorned):
-    prev_page = None 
+def find_curr_page(idx, adorned, prev_page, isImage=False):
     prev_page_type = None 
+    previsRoman = ''
     idx_to_find_page = idx
     while prev_page is None: 
         if idx_to_find_page >= 0: 
             temp = adorned[idx_to_find_page]
             temp = temp.strip("\n").split("\t")
             if len(temp) == 0: continue
-            if re.search(r"^PAGE[\d+\w+]",temp[0]):
+            if re.search(r"^PAGEIMAGE[\d+\w+]",temp[0]) and isImage:
+                prev_page_type, prev_page, previsRoman = get_page_number(temp[0])
+            elif re.search(r"^PAGE[\d+\w+]",temp[0]) and not isImage:
                 prev_page_type, prev_page, previsRoman = get_page_number(temp[0])
             else: 
                 idx_to_find_page -= 1 
@@ -82,20 +92,54 @@ def find_curr_page(idx, adorned):
             temp = adorned[idx_to_find_page]
             temp = temp.strip("\n").split("\t")
             if len(temp) == 0: continue
-            if re.search(r"^PAGE[\d+\w+]",temp[0]):
+            if re.search(r"^PAGEIMAGE[\d+\w+]",temp[0]) and isImage:
+                next_page_type, next_page, nextisRoman = get_page_number(temp[0])
+            elif re.search(r"^PAGE[\d+\w+]",temp[0]) and not isImage:
                 next_page_type, next_page, nextisRoman = get_page_number(temp[0])
             else: 
-                idx_to_find_page -= 1
+                idx_to_find_page += 1
         else: 
             break
-    
     # compare previously known page and next page to deduct current page number 
     if prev_page is None and next_page is not None: 
         # at the very beginning 
-        curr_page = f"{next_page_type}{next_page-1}"
+        curr_page = f"{next_page_type}{next_page-1}{previsRoman}"
     elif next_page is not None and (prev_page + 1) != next_page: 
         # when the extracted sections are not consecutive
-        curr_page = f"{next_page_type}{next_page-1}"
+        curr_page = f"{next_page_type}{next_page-1}{previsRoman}"
     else: 
         curr_page = f"{prev_page_type}{prev_page}{previsRoman}"
     return curr_page
+
+
+start_words = ['A', 'Ad', 'After', 'Againe', 'Agayn', 'Agayne', 'Agaynst', 'Ageyne', 'Ah', 'Al', 
+               'Alas', 'All', 'Also', 'Although', 'Amonge', 'An', 'And', 'Ande', 'Anone', 'Another', 
+               'Are', 'As', 'Aske', 'At', 'Be', 'Because', 'Before', 'Behold', 'Beholde', 'Beleue', 
+               'Besyde', 'Besydes', 'Beware', 'Blessed', 'But', 'By', 'Certe', 'Come', 'Concerning', 
+               'Consider', 'Consyder', 'Cum', 'De', 'Did', 'Do', 'Doest', 'Doeth', 'Doo', 'Dyd', 
+               'Ecce', 'Ego', 'Ergo', 'Est', 'Et', 'Euen', 'Euery', 'Euē', 'Even', 'Except', 'Eyther', 
+               'Farther', 'Father', 'Ferthermore', 'Finally', 'First', 'Flee', 'For', 'Forsothe', 
+               'Forthermore', 'From', 'Frome', 'Further', 'Furthermore', 'Furthermore,', 'Fyrst', 'Fyrste', 
+               'GOod', 'Geue', 'Go', 'God', 'Good', 'Gyue', 'Haec', 'Hanc', 'Haue', 'He', 'Heare', 'Hec', 
+               'Hee', 'Here', 'Herode', 'Hic', 'His', 'Hit', 'Hoc', 'Holy', 'How', 'Howbeit', 'Howe', 'Hys', 
+               'I', 'IN', 'IT', 'Iam', 'Id', 'Ideo', 'If', 'Ille', 'In', 'Ipse', 'Is', 'Ista', 'It', 'Ita', 
+               'Let', 'Lette', 'Likewise', 'Lo', 'Loke', 'Loo', 'Looke', 'Loue', 'Lyke', 'Lykewyse', 
+               'Make', 'Man', 'Many', 'Manye', 'Marke', 'Men', 'More', 'Moreouer', 'Multi', 'My', 
+               'Nam', 'Namely', 'Narracio.', 'Nat', 'Nay', 'Naye', 'Ne', 'Nec', 'Neither', 'Nether', 
+               'Neuer', 'Neuertheles', 'Neuerthelesse', 'Neyther', 'No', 'Non', 'None', 'Nonne', 'Noo', 
+               'Nor', 'Not', 'Now', 'Nowe', 'Nunc', 'Nunquid', 'O', 'Of', 'Oh', 'On', 'One', 'Open', 
+               'Or', 'Other', 'Ouer', 'Our', 'Oure', 'Out', 'Per', 'Post', 'Praye', 'Put', 'Quae', 'Quam', 
+               'Quapropter', 'Quare', 'Qui', 'Quia', 'Quibus', 'Quicquid', 'Quid', 'Quis', 'Quo', 'Quod', 
+               'Quoniam', 'Ryght', 'Se', 'Secondely', 'Secondly', 'Sed', 'See', 'Seest', 'Seing', 'Sequitur', 
+               'Seynge', 'Shal', 'Shall', 'She', 'Shew', 'Shewe', 'Si', 'Sic', 'Sicut', 'Sine', 'So', 
+               'Some', 'Somtyme', 'Soo', 'Such', 'Suche', 'Suerly', 'Sunt', 'Surely', 'Surelye', 'Sustinet', 'Syr', 
+               'THe', 'THere', 'Take', 'Tell', 'Than', 'Thanne', 'That', 'Thā', 'The', 'Thei', 'Their', 'Then', 
+               'Thenne', 'Then̄e', 'Ther', 'There', 'Therefore', 'Therfor', 'Therfore', 'These', 'They', 'Theyr', 
+               'Thē', 'Thinke', 'This', 'Those', 'Thou', 'Though', 'Thoughe', 'Thus', 'Thy', 'Thyrdely', 'Thyrdly', 
+               'Thys', 'To', 'True', 'Truely', 'Truly', 'Tu', 'Upon', 'Vbi', 'Veh', 'Verely', 'Verum', 'Videtis', 
+               'Vnde', 'Vnto', 'Vt', 'Was', 'We', 'Wee', 'Wel', 'Well', 'Were', 'Whan', 'What', 'When', 'Whenne', 
+               'Wher', 'Wheras', 'Wherby', 'Where', 'Wherefore', 'Wherfor', 'Wherfore', 'Wherof', 'Wherout', 'Whether', 
+               'Whē', 'Which', 'Whiche', 'Who', 'Whose', 'Whosoeuer', 'Why', 'Whyche', 'Whye', 'With', 'Wo', 'Wyll', 
+               'Wyth', 'Ye', 'Yea', 'Yea,', 'Yee', 'Yes', 'Yet', 'Yf', 'You', 'Your', 'Yt']
+
+start_words = {word:None for word in start_words}

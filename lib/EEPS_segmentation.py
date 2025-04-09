@@ -8,7 +8,8 @@ from lib.citations import *
 from EEPS_helper import * 
 
 import pandas as pd 
-from tqdm import tqdm 
+from tqdm import tqdm
+import numpy as np
 
 # primary key is (sent_idx, text_idx)
 columns = ['sent_idx', 'text_idx', 'is_note', 'encoding']
@@ -91,7 +92,7 @@ def process_prefix(tcpIDs,era,prefix):
     info = {}
     progress = tqdm(tcpIDs)
     for tcpID in progress:
-        # if tcpID != "A00003": continue 
+        # if tcpID != "A18708": continue 
         progress.set_description(era + " " + tcpID) 
         m, s, i = encode(tcpID)
         margins[tcpID] = m 
@@ -110,8 +111,17 @@ if __name__ == "__main__":
         corpora = json.load(file)
     for era in corpora:
         for prefix,tcpIDs in corpora[era].items(): 
-
+            # if era in ["pre-Elizabeth"]: continue 
+            # if prefix != "A": continue 
             tcpIDs = sorted(tcpIDs)
             tcpIDs = [tcpID for tcpID in tcpIDs if tcpID in already_adorned]
             if len(tcpIDs) == 0: continue
             process_prefix(tcpIDs,era, prefix)
+
+            segment_lengths = []
+            text = pd.read_csv(f"/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_body.csv", header=None)
+            for idx, item in enumerate(text[6]): 
+                items = item.split(" ")
+                length = len(items)
+                segment_lengths.append(length)
+            print(np.mean(segment_lengths), min(segment_lengths), max(segment_lengths))
