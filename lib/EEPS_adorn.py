@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     prefix = input("Enter prefix: ")
     for tcpID in tcpIDs: 
-        if prefix in tcpID:  # A0, B, A9, A8, A1, A2, A3, A7, A4, A6, A5
+        if prefix in tcpID:  
             if tcpID not in already_adorned: 
                 adorn(tcpID)
 

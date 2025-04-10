@@ -15,9 +15,9 @@ class Segments():
         self.curr_standard = [] # standardized terms 
         self.curr_in_note = False  
         self.curr_length = 0 # the length of the current segment excluding note spans & italic markers 
-        self.curr_last_token = None 
+        self.curr_last_token = '' 
         self.prior_length = 0 # the length of the prior segment excluding note spans & italic markers 
-        self.prior_last_token = None # last non-note token in the prior segment
+        self.prior_last_token = '' # last non-note token in the prior segment
 
         self.segment()
 
@@ -38,22 +38,7 @@ class Segments():
         else:
             self.curr_standard.append(t)
             self.curr_pos.append(t)
-
-    def add_segment(self):
-        if len(self.segments) > 0: 
-            prior_section = self.segments[-1][0]
-            if self.curr_length <= 5 and (self.curr_section.split("^")[-1] != prior_section.split("^")[-1]): 
-                self.combine_with_prior_segment()
-                return  
-        if self.curr_length > 0:  
-            self.segments.append((self.curr_section, self.curr_page, self.curr_paragraph, 
-                                    " ".join(self.curr_segment),
-                                    " ".join(self.curr_pos),
-                                    " ".join(self.curr_standard)))
-            self.prior_length = self.curr_length 
-            self.prior_last_token = self.curr_last_token 
-            self.reset()
-
+    
     def combine_with_prior_segment(self):
         if self.curr_length > 0: 
             section,page,para,c,d,e = self.segments[-1]
@@ -64,6 +49,23 @@ class Segments():
             self.prior_length += self.curr_length 
             self.prior_last_token = self.curr_last_token 
             self.reset()
+
+    def add_segment(self):
+        # if len(self.segments) > 0: 
+        #     # merge overly short segments with prior segments of the SAME DIV
+        #     prior_paragraph = self.segments[-1][2]
+        #     if self.curr_length <= 5 and (self.curr_paragraph == prior_paragraph): 
+        #         self.combine_with_prior_segment()
+        #         return  
+        if self.curr_length > 0:  
+            self.segments.append((self.curr_section, self.curr_page, self.curr_paragraph, 
+                                    " ".join(self.curr_segment),
+                                    " ".join(self.curr_pos),
+                                    " ".join(self.curr_standard)))
+            self.prior_length = self.curr_length 
+            self.prior_last_token = self.curr_last_token 
+            self.reset()
+
     
     def update_section(self,token):
         section_idx = int(self.curr_section.split("^")[-1]) + 1
@@ -123,7 +125,7 @@ class Segments():
             ############ 
             # NEW PAGE 
             ############            
-            elif re.search(r"^PAGE[\d+\w+]",token): 
+            elif is_page(token) or is_page_image(token): 
                 curr_page = str(self.curr_page)  
                 if "IMAGE" in curr_page and "IMAGE" not in token: 
                     continue # only look at pages 
@@ -132,8 +134,14 @@ class Segments():
                 else: 
                     curr_page_type,curr_page,currisRoman = get_page_number(token)
                     self.curr_page = f"{curr_page_type}{curr_page}{currisRoman}"
-            
-
+            ############ 
+            # MISSING PAGE 
+            ############  
+            elif re.search(r"\^MISSING",token) and "PAGE" in token: 
+                if len(self.curr_segment) > 0: 
+                    # conclude the prior segment 
+                    self.add_segment()
+                continue 
             else:
                 ############ 
                 # NEW PARAGRAPH OR MARGINALIUM OR 
@@ -162,16 +170,16 @@ class Segments():
                     self.add_segment()
                     self.curr_paragraph += 1 
                     continue 
-                
+
                 ############ 
                 # DO NOT END SEGMENT WITHIN A MARGINALIUM OR ITALICIZED SPAN 
                 # DO NOT ADD SINGLE ITEM SEGMENTS 
                 ############
                 if self.curr_in_note: continue                
-                if self.curr_length == 1: # ensures that "FINIS." is not its own segment 
+                if self.curr_length == 1: # ensures that the final segment is added in case there is not an EOS marker 
                     if idx == (len(adorned)-1): 
-                        self.combine_with_prior_segment()
-                    continue 
+                        self.add_segment()
+                    continue
 
                 ############ 
                 # FIND NEXT TOKEN 
@@ -189,6 +197,10 @@ class Segments():
                     self.update(next_token, next_pos, next_standard)
                     adorned[idx+1] = ""
                     self.curr_in_note = False 
+                    nextidx += 1 
+                    if nextidx < len(adorned): 
+                        next = adorned[nextidx].split("\t")
+                        next_token, next_pos,next_standard = next[0], next[2], next[3]
                 
                 ############ 
                 # SEGMENT BOUNDARY IS WITHIN ITALICIZED SPAN   
@@ -197,20 +209,20 @@ class Segments():
                     # "STARTITALICS <segment> . ENDITALICS <next segment>"
                     self.update(next_token, next_pos, next_standard)
                     adorned[idx+1] = ""
+                    nextidx += 1 
+                    if nextidx < len(adorned): 
+                        next = adorned[nextidx].split("\t")
+                        next_token, next_pos,next_standard = next[0], next[2], next[3]
+                    
+
                 
                 ############ 
                 # DO NOT ALLOW NUMBERS TO BEGIN SENTENCES   
                 # avoid starting the current segment with a number or parenthetical 
                 # the boundary of the prior segment is not a colon, semicolon, or question mark 
                 ############
-                isNumeral = False 
-                if re.search(r"^[0-9\^\(\)]",next_token): 
-                    isNumeral = True 
-                else: 
-                    num = convert_numeral(next_token)
-                    if isinstance(num,int): 
-                        isNumeral = True 
-                if isNumeral or "crd" in next_pos:
+
+                if not re.match(r"\:|\;|\?|\\|\/|\!",token) and (isNumeral(next_token) or "crd" in next_pos):
                     self.update(next_token, next_pos, next_standard)
                     self.curr_last_token = next_token 
                     adorned[nextidx] = ""
@@ -218,18 +230,21 @@ class Segments():
                     if nextidx < len(adorned): 
                         next = adorned[nextidx].split("\t")
                         next_token, next_pos,next_standard = next[0], next[2], next[3]
-                        if (re.match(r"\:|\;|\?|\\|\/|\!|\.",next_token) or EOS == "1"):
+                        if re.match(r"\:|\;|\?|\\|\/|\!|\.",next_token) or EOS == "1":
                             self.update(next_token, next_pos, next_standard)
                             adorned[nextidx] = ""
                             continue
-
+                elif re.match(r"\(|\)",next_token):
+                    self.update(next_token, next_pos, next_standard)
+                    self.curr_last_token = next_token 
+                    adorned[nextidx] = ""
+                    continue
                 
                 ############ 
                 # ADD SEGMENT OR COMBINE WITH PRIOR SEGMENT 
                 # Average length of a Bible verse is 23 words with white space tokenization  
                 # Common lengths in order from top to low: [17, 18, 16, 15, 19, 14, 20, 21, 13, 22]
-                ############          
-                
+                ############         
 
                 if (re.match(r"\:|\;|\?|\\|\/|\!|\.",token) or EOS == "1"):
                     
@@ -237,30 +252,38 @@ class Segments():
                         prior_segment = self.segments[-1][3].split(" ")
                         prior_section = self.segments[-1][0]
                         last_token = prior_segment[-1]
+                        first_token = self.curr_segment[0]
 
                         # check that the prior segment belongs in the same section 
                         if self.curr_section.split("^")[-1] != prior_section.split("^")[-1]:
                             self.add_segment()
                             continue
-                    
+                        if isNumeral(self.prior_last_token[0]) and first_token not in conjunctions and first_token not in start_words: 
+                            # the last word of the prior segment is a number 
+                            self.combine_with_prior_segment()
+                            continue
+
                         # combine short segments 
-                        if self.curr_length <= 10 and self.prior_length <= 10:
-                            if re.search(r'^[a-z\d•]',self.curr_segment[0]):
-                                # current segment begins with a lower case word or number 
+                        if self.curr_length <= 15 and self.prior_length <= 15:
+                            if re.search(r'^[a-z]',first_token):
+                                # current segment begins with a lower case word or numeral 
                                 self.combine_with_prior_segment()
                                 continue
+                            elif isNumeral(first_token) and not re.search(r"\.",token):
+                                self.combine_with_prior_segment()  
                             elif (not re.search(r"\.|ENDITALICS|ENDNOTE",last_token)): 
                                 # prior segment ends with a non-period punctuation mark 
                                 self.combine_with_prior_segment()
                                 continue
-                            elif re.match(r'[a-z\d]',self.prior_last_token[0]):
-                                # the last actual word of the prior segment is in lower case or contains a number
+                            elif re.match(r'[a-z]',self.prior_last_token[0]) or isNumeral(self.prior_last_token[0]): 
+                                # the last actual word of the prior segment is in lower case or a numeral 
                                 self.combine_with_prior_segment()
                                 continue
+                    self.add_segment() 
+                elif self.curr_length >= 30 and re.search(r"[\.\,]",token) and (next_token.capitalize() in conjunctions or next_token in start_words): 
                     self.add_segment()   
-                elif self.curr_length >= 30 and next_token in start_words:
+                elif self.curr_length >= 60 and (next_token in start_words or next_token in conjunctions):
                     self.add_segment() 
-                elif self.curr_length >= 60 and token == "," and next_token.capitalize() in start_words: 
-                    self.add_segment() 
+                
                 
 

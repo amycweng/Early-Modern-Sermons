@@ -92,7 +92,7 @@ def process_prefix(tcpIDs,era,prefix):
     info = {}
     progress = tqdm(tcpIDs)
     for tcpID in progress:
-        # if tcpID != "A18708": continue 
+        # if tcpID != "A03342": continue 
         progress.set_description(era + " " + tcpID) 
         m, s, i = encode(tcpID)
         margins[tcpID] = m 
@@ -109,12 +109,21 @@ if __name__ == "__main__":
 
     with open('../assets/corpora.json','r') as file: 
         corpora = json.load(file)
+    
+    target_era = input("Enter era or All: ")
+    target_prefix = input("Enter prefix or All: ")
+    target_tcpID = input("Enter tcpID or All: ")
     for era in corpora:
+        if target_era != "All":
+            if era != target_era: 
+                continue 
         for prefix,tcpIDs in corpora[era].items(): 
-            if era in ["pre-Elizabeth","Elizabeth","JamesI",  "CharlesI", "CivilWar","Interregnum","CharlesII"]: continue
-            if era == "JamesII":
-                if prefix  in ["B","A0","A1","A2"]: continue  
-
+            if target_prefix != "All":
+                if prefix != target_prefix: 
+                    continue 
+                
+            if target_tcpID != "All":
+                tcpIDs = [target_tcpID]
             tcpIDs = sorted(tcpIDs)
             tcpIDs = [tcpID for tcpID in tcpIDs if tcpID in already_adorned]
             if len(tcpIDs) == 0: continue

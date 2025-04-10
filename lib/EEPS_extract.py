@@ -4,6 +4,11 @@ sys.path.append('../')
 from lib.dictionaries.sermon_annotations import * 
 from EEPS_helper import * 
 
+def format_name(item):
+    item = "\^".join(item.split(" "))
+    item = re.sub(r"[^\d\^\\\'\w1]","\^",item)
+    return item 
+
 def extract(tcpID, filepath):
     # read the input XML file 
     with open(filepath,'r') as file: 
@@ -24,16 +29,17 @@ def extract(tcpID, filepath):
         toAdd = False 
         
         section_name = div.name 
-        section_idx = "" 
+        section_note = "" 
         if "N" in div.attrs: 
-            section_idx = div["N"]
-        section_type = div.get("TYPE").lower().split(" ")
-        section_type_output = "\^".join(section_type)
-        section_type = "_".join(section_type)
+            section_note = div["N"]
+            section_note = format_name(section_note)
+        section_type = div.get("TYPE").lower()
+        section_type_output = format_name(section_type) 
+        section_type = "_".join(section_type.split(" "))
 
         if tcpID in custom_subsections: 
             if section_name in custom_subsections[tcpID]:
-                if (section_type,section_idx) == custom_subsections[tcpID][section_name]: 
+                if (section_type,section_note) == custom_subsections[tcpID][section_name]: 
                     toAdd = True  
         elif tcpID in sermon_subsections: 
             if section_type == "sermon": 
@@ -100,28 +106,29 @@ def extract(tcpID, filepath):
 
             for child in div.children:
                 if child.name in ['DIV1', 'DIV2', 'DIV3', 'DIV4', 'DIV5', 'DIV6', 'DIV7']:
-                    ss_type = "\^".join(child.get("TYPE").lower().split(" "))
+                    ss_type = child.get("TYPE").lower()
                     if re.search("table|errata|index",ss_type): 
                         continue 
+                    ss_type = format_name(ss_type)
                     ss_N = ""
                     if "N" in child.attrs: 
                         ss_N = child["N"]
+                        ss_N = format_name(ss_N)
                     text.append(f" {child.name}^{ss_type}^{ss_N} " + child.get_text() + " ")
                 
                 else: 
                     text.append(" " + child.get_text() + " ")
-            text = f" {f' {section_name}^{section_type_output}^{section_idx}'} {' '.join(text).strip()} "
+        
+            text = f" {f' {section_name}^{section_type_output}^{section_note}'} {' '.join(text).strip()} "
             text = re.sub(r"|","",text)
             if tcpID in custom_pages: 
                 position = text.find(custom_pages[tcpID])
                 preceding = re.findall(r'(\bDIV[\d+\_\w+\^]+)\s', text[:position])
                 text = " ".join(preceding) + " " + text[position:]
             div_text.append(text)
-            # print('ADDED',f' {section_name}^{section_type_output}^{section_idx}', last_added_section)
         else: 
-            # print(f' {section_name}^{section_type_output}^{section_idx}', last_added_section)
             if last_added_section is None or (int(last_added_section[-1]) > int(section_name[-1])): 
-                div_text.append(f' {section_name}^{section_type_output}^{section_idx} ')
+                div_text.append(f' {section_name}^{section_type_output}^{section_note} ')
     
     with open(f"../assets/plain_body/{tcpID}.txt","w+") as file:
         div_text = re.sub(r"\s+"," "," ".join(div_text).strip())
@@ -136,8 +143,10 @@ if __name__ == "__main__":
     all_sermons = list(sermons.keys())
     all_sermons.extend(sermons_missing.keys())
     tcpIDs = sorted(all_sermons) 
+    already_extracted = os.listdir('../assets/plain_body')
+    already_extracted = {k.split(".txt")[0]:None for k in already_extracted}
 
-    progress_bar = tqdm(tcpIDs) 
+    progress_bar = tqdm([tcpID for tcpID in tcpIDs if tcpID not in already_extracted]) 
     num_sermons = 0 
     missing = []
     for idx, tcpID in enumerate(progress_bar): 
