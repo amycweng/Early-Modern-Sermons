@@ -247,7 +247,6 @@ class Segments():
                 ############         
 
                 if (re.match(r"\:|\;|\?|\\|\/|\!|\.",token) or EOS == "1"):
-                    
                     if len(self.segments) > 0: # there is a prior segment 
                         prior_segment = self.segments[-1][3].split(" ")
                         prior_section = self.segments[-1][0]
@@ -258,27 +257,25 @@ class Segments():
                         if self.curr_section.split("^")[-1] != prior_section.split("^")[-1]:
                             self.add_segment()
                             continue
-                        if isNumeral(self.prior_last_token[0]) and first_token not in conjunctions and first_token not in start_words: 
+
+                        if isNumeral(self.prior_last_token) and first_token not in conjunctions and first_token not in start_words: 
                             # the last word of the prior segment is a number 
                             self.combine_with_prior_segment()
                             continue
-
+                        
                         # combine short segments 
                         if self.curr_length <= 15 and self.prior_length <= 15:
                             if re.search(r'^[a-z]',first_token):
                                 # current segment begins with a lower case word or numeral 
                                 self.combine_with_prior_segment()
                                 continue
-                            elif isNumeral(first_token) and not re.search(r"\.",token):
+                            if isNumeral(first_token) and re.search(r"\.|\,",token):
                                 self.combine_with_prior_segment()  
                             elif (not re.search(r"\.|ENDITALICS|ENDNOTE",last_token)): 
                                 # prior segment ends with a non-period punctuation mark 
                                 self.combine_with_prior_segment()
                                 continue
-                            elif re.match(r'[a-z]',self.prior_last_token[0]) or isNumeral(self.prior_last_token[0]): 
-                                # the last actual word of the prior segment is in lower case or a numeral 
-                                self.combine_with_prior_segment()
-                                continue
+                            
                     self.add_segment() 
                 elif self.curr_length >= 30 and re.search(r"[\.\,]",token) and (next_token.capitalize() in conjunctions or next_token in start_words): 
                     self.add_segment()   

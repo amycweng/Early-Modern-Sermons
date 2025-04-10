@@ -30,7 +30,6 @@ def findTextTCP(id):
 roman_to_int = {"i": 1, "v": 5, "x": 10, "l": 50, "c": 100, "d": 500, "m": 1000}
 def convert_numeral(word):
     orig_word = word
-    word = re.sub(r"[^\w]", "",word)
 
     word = word.lower()
     word = re.sub("\.","",word) # strip period if Roman numeral 
@@ -60,13 +59,14 @@ def convert_numeral(word):
 # print(convert_numeral("lxxxix"))
 
 def isNumeral(item):
-    if re.match(r"[0-9]+",item): 
+    if re.match(r"[0-9\•]+",item): 
         return True 
     else: 
         num = convert_numeral(item)
         if isinstance(num,int): 
             return True
     return False
+
 
 def get_page_number(token): 
     if is_page_image(token): 
