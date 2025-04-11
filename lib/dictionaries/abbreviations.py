@@ -8,6 +8,9 @@ def clean_word(word):
     word = re.sub(r"(?<=\w)y(?=\w)","i",word) # replace y's that occur within words into i's
     return word 
 
+''' 
+Special cases: epistle, verse, ibidem 
+'''
 abbrev = { 
     'acts':
     [
@@ -417,33 +420,33 @@ abbrev = {
         'esphes',
         'fphes',
     ],
-    # 'epistle':
-    # [
-    #     'e^ist',
-    #     'e^pist',
-    #     'ep',
-    #     'ep^',
-    #     'ep^st',
-    #     'epb',
-    #     'epi',
-    #     'epi^t',
-    #     'epict',
-    #     'epis',
-    #     'epis^',
-    #     'epis^^',
-    #     'episc',
-    #     'episi',
-    #     'episl',
-    #     'epist',
-    #     'epist^',
-    #     'epistl',
-    #     'epistle',
-    #     'epit',
-    #     'epl',
-    #     'eppes',
-    #     'epst',
-    #     'ept',
-    # ],
+    'epistle':
+    [
+        'e^ist',
+        'e^pist',
+        'ep',
+        'ep^',
+        'ep^st',
+        'epb',
+        'epi',
+        'epi^t',
+        'epict',
+        'epis',
+        'epis^',
+        'epis^^',
+        'episc',
+        'episi',
+        'episl',
+        'epist',
+        'epist^',
+        'epistl',
+        'epistle',
+        'epit',
+        'epl',
+        'eppes',
+        'epst',
+        'ept',
+    ],
     'esdras': [
         'esd',
         'esdt',
@@ -1910,12 +1913,23 @@ abbrev = {
         'zephan',
         'zephaniah',
         'zephany',
-        'zepho'
+        'zepho',
+        'sophonias',
+        'sophon',
+        'sophoni'
     ],
     'ibidem': [
         # special case 
+        'ibidem',
         'jb',
-        'jbid'
+        'jbid',
+        'ibid'
+    ],
+    'verse':[
+        'verse',
+        'ver',
+        'vers',
+        'verses',
     ]
     # Mos? 
     # A96530,sermon,375,81,"Song of Sol. 2. 1, 2."
