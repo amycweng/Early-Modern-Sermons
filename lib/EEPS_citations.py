@@ -1,4 +1,4 @@
-import sys,csv,json
+import sys,csv,json,re
 sys.path.append('../')
 import pandas as pd 
 from EEPS_citationID import * 
@@ -18,7 +18,8 @@ def PROCESS_CITATIONS(ERA,prefix):
     # progress = enumerate(body["tokens"])
     for idx, token_str in progress: 
         tcpID = body["tcpID"][idx]
-        # progress.set_description(tcpID)
+        # if tcpID != "B07186": continue
+        progress.set_description(tcpID)
         sidx = body["sidx"][idx]
         token_str = re.sub(r"\<i\>|\<\/i\>"," ",token_str)
         token_str = re.sub(r"\s+"," ",token_str)
@@ -46,6 +47,7 @@ def PROCESS_CITATIONS(ERA,prefix):
     # progress = enumerate(marginalia["tokens"])
     for idx, token_str in progress: 
         tcpID = marginalia["tcpID"][idx]
+        # if tcpID != "B07186": continue
         progress.set_description(tcpID+" marginalia") 
         # if "ii cor iiii" not in token_str: continue 
         sidx = marginalia["sidx"][idx]
@@ -70,27 +72,28 @@ def PROCESS_CITATIONS(ERA,prefix):
 
 
 if __name__ == "__main__":
+    # print(extract_citations("Num. 13.30. & 14.9."))
     with open('../assets/corpora.json','r') as file: 
         corpora = json.load(file)
     target_era = input("Enter era or All: ")
     target_prefix = input("Enter prefix or All: ")
-    target_tcpID = input("Enter tcpID or All: ")
-    # target_era = "pre-Elizabeth"
-    # target_prefix = "A1"
-    # target_tcpID = "A17223"
+
+    # target_era = "JamesI"
+    # target_prefix = "B"
+
     for era in corpora:
+        # if era in ["pre-Elizabeth",'Elizabeth','JamesI']: continue 
         if target_era != "All":
             if era != target_era: 
                 continue 
         for prefix,tcpIDs in corpora[era].items(): 
+            # if era in ['CharlesI'] and prefix in ['B','A0']:continue
+            if len(tcpIDs) == 0: continue
             if target_prefix != "All":
                 if prefix != target_prefix: 
                     continue 
                 
-            if target_tcpID != "All":
-                tcpIDs = [target_tcpID]
-
-            if len(tcpIDs) == 0: continue 
+ 
             PROCESS_CITATIONS(era,prefix)
 
     # print(extract_citations("3 John 23.12"))
@@ -109,4 +112,5 @@ if __name__ == "__main__":
     # print(extract_citations('Gene. 7.8.'))
     # print(extract_citations('1 Cor. cap. 8. 9. & 10.'))
     # print(extract_citations("Rom viii • ii cor iiii and v psa xliiii e"))
+    # print(extract_citations("Esay 51.12, & 7, 8."))
     

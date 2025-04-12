@@ -121,7 +121,6 @@ def identify_citation_candidates(text):
                             if idx-2 >= 0:
                                 if text[idx-2] not in abbrev: 
                                     # avoid taking the last number of a prior cited verse 
-                                    text[idx-1] = prev
                                     if prev == "•":
                                         word = f" unknown{word}"
                                     elif f"{prev} {word}" in numBook: 
@@ -154,6 +153,7 @@ def identify_citation_candidates(text):
             idx += 1 
             curr = [orig, text[idx]]
             span = [word,convert_numeral(text[idx])]
+            # print(curr,span)
             if (idx+1) < len(text):
                 if next2_isNum: 
                     idx += 1
@@ -208,9 +208,9 @@ def decompose(phrase):
         for p in passages: 
             if not re.match(r"^[\d\•|\◊]+$",p):
                 all_single = False 
-       
+        has_chapter = ""
         for passage in passages:
-            passage = passage.strip()
+            passage = passage.strip(",.")
             if all_single: 
                 if re.match(r"\•|\◊",passage):
                     outliers.append(f"{book} {passage}")
@@ -218,19 +218,28 @@ def decompose(phrase):
                     citations.append(f"{book} {passage}")
             elif re.search('\,',passage): 
                 c, o = comma(book,passage)
+                if has_chapter: 
+                    for i, w in enumerate(c): 
+                        if "." not in w: 
+                            c[i] = f"{book} {has_chapter}{w.split(' ')[1]}"
                 citations.extend(c)
                 outliers.extend(o)
             elif re.search('\-', passage):
                 c, o = hyphen(book,passage)
+                if has_chapter: 
+                    for i, w in enumerate(c): 
+                        if "." not in w: 
+                            c[i] = f"{book} {has_chapter}{w.split(' ')[1]}"
                 citations.extend(c)
                 outliers.extend(o)            
             # call simple() to account for "<chapter> <line1>"
             elif re.search(r'^\d+[.: ]\d+$',passage): 
                 c,o = simple(book,passage)
                 citations.extend(c)
+                has_chapter = c[0].split(" ")[1].split(".")[0] +"."
                 outliers.extend(o)
             else:  
-                outliers.append(f"{book} {passage}")
+                outliers.append(f"{book} {has_chapter}{passage}")
     
     # if there are no ampersands & hyphens but there are commas  
     elif re.search(',',phrase): 
@@ -256,8 +265,15 @@ def decompose(phrase):
     # pretty formatting 
     citations = proper_title(citations)
     outliers = proper_title(outliers)
+    final_c = []
+    final_o = []
+    for item in citations: 
+        if re.search("\•",item[0]): 
+            final_o.append(item)
+        else: 
+            final_c.append(item)
     for item in outliers: 
-        if item in citations: 
-            outliers.remove(item)
+        if item not in final_c: 
+            final_o.append(item)
     # return both citations and outliers  
-    return citations, outliers
+    return final_c, final_o

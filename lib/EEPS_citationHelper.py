@@ -81,6 +81,7 @@ def get_span(next_idx:int,text_list:list,span:list,curr:list):
 def proper_title(citations_list): 
     final_citations = []
     for citation in citations_list:
+
         citation = re.sub(f'\,','',citation)
         citation = citation.split(' ') 
         book = citation[0]
@@ -117,35 +118,40 @@ def comma(book, passage):
     
     items = passage.split(',')
     chapter = '' 
+    verse = ''
+    add_item = False 
     for w in items:
         if "." in w: 
             w = w.split(".")
-            chapter = w[0] + "." 
-            if len(w) > 1: 
-                verse = w[1].strip(" ")
-                phrases.append(f'{book} {chapter}{verse}')
-            else: 
-                phrases.append(f'{book} {chapter.strip(".")}')
+            chapter = w[0] + "."
+            add_item = True 
         elif ":" in w: 
             w = w.split(":")
             chapter = w[0] + "."
-            if len(w) > 1: 
-                verse = w[1].strip(" ")
-                phrases.append(f'{book} {chapter}.{verse}')
-            else: 
-                phrases.append(f'{book} {chapter.strip(".")}')
+            add_item = True
         else: 
             if "-" in w: 
                 c, o = continuous(book, f"{chapter}{w}")
                 phrases.extend(c)
                 outliers.extend(o)
             else: 
-                w = w.strip(" ")
-                phrases.append(f'{book} {chapter}{w}')
-    for item in phrases: 
-        if re.search(r"^[^\d]+$",item): 
-            outliers.append(item)
-            phrases.remove(item)
+                w = w.strip(" ").split(" ")
+                add_item = True 
+        
+        if add_item: 
+            if len(w) > 1: 
+                verse = w[1].strip(" ")
+                if not re.search(r"[^\d+]",verse):
+                    phrases.append(f'{book} {chapter}{verse}')
+                else: 
+                    outliers.append(f'{book} {chapter}{verse}')
+            else: 
+                chapter = w[0]
+                if not re.search(r"[^\d+]",w[0]):
+                    phrases.append(f'{book} {chapter}')
+                else: 
+                    outliers.append(f'{book} {chapter}')
+
     return phrases,outliers
 
 '''
@@ -156,13 +162,14 @@ Target format is "<book> <chapter>.<verse>"
 def simple(book, passage): 
     # the simple case of just having "<book> <chapter>.<verse>"
     # sometimes an entirely missing verse reference becomes an illegible word --> Psalms 39.3 as Psalms * 
+    passage = passage.strip(",")
     nums = re.findall(r'[\d\•|\◊]+',passage)
-    if re.search(r"^[^\d]+$",nums[1]):
-        if not re.search(r"^[^\d]+$",nums[0]):
+    if re.search(r"[^\d+]",nums[1]):
+        if not re.search(r"[^\d+]",nums[0]):
             # chapter known 
             return [f'{book} {nums[0]}'],[f'{book} {passage}']
     else: 
-        if not re.search(r"^[^\d]+$",nums[0]):
+        if not re.search(r"[^\d+]",nums[0]):
             return [f'{book} {nums[0]}.{nums[1]}'],[]
     return [],[f'{book} {passage}'] 
 
@@ -194,26 +201,21 @@ def continuous(book, w):
         if len(end) < len(start): 
             # cases of 18-9
             end = "".join(start[:len(start)-len(end)]) + end
-        if re.search(r"^[^\d]+$",start) or start == "": 
-            if re.search(r"^[^\d]+$",end):
+        if re.search(r"[^\d+]",start) or start == "": 
+            if re.search(r"[^\d+]",end):
                 if chapter != '': 
                     outliers.append(f'{book} {passage}') 
             else: 
                 phrases.append(f"{book} {chapter}{end}")
                 outliers.append(f'{book} {chapter}{start}')        
         else: 
-            if re.search(r"^[^\d]+$",end) or end == "":
+            if re.search(r"[^\d+]",end) or end == "":
                 phrases.append(f"{book} {chapter}{start}")
                 outliers.append(f'{book} {chapter}{end}')  
             else: 
                 start, end = int(start), int(end)
                 for idx in range(end-start+1): 
                     phrases.append(f'{book} {chapter}{start+idx}')        
-    for item in phrases: 
-        if re.search(r"^[^\d]+$",item): 
-            outliers.append(item)
-            phrases.remove(item)
-
     return phrases, outliers
 
 
@@ -225,7 +227,7 @@ def hyphen(book,passage):
     citations, outliers = [], []
     passage = passage.strip().strip('-')
     
-    if re.search(r"^[^\d]+$",passage):
+    if re.search(r"[^\d+]",passage):
         outliers.append(f"{book} {passage}")
 
     if len(re.findall(r'[\d\•|\◊]+',passage)) == 3:
@@ -236,7 +238,9 @@ def hyphen(book,passage):
     
     if re.search(r'^[\d\s\.\:]*[\d\•|\◊]+-[\d\•|\◊]+$',passage): 
         # '3.9-12' or '3.9 - 12'        
-        citations.extend(continuous(book, passage))
+        c, o = continuous(book, passage)
+        citations.extend(c)
+        outliers.extend(o)
         
     return citations, outliers
     
