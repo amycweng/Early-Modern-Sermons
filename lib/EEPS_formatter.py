@@ -6,7 +6,7 @@ import warnings
 warnings.filterwarnings("ignore", category=pd.errors.SettingWithCopyWarning)
 
 # get Bibles 
-bible_dir = "/Users/amycweng/DH/SERMONS_APP/db/data/Bibles"
+bible_dir = "../../DH/SERMONS_APP/db/data/Bibles"
 bibles = ['Douay-Rheims','Geneva','KJV','Tyndale','Wycliffe','Vulgate']
 bible_verses = {}
 for b in bibles: 
@@ -16,7 +16,7 @@ for b in bibles:
         bible_verses[f'{v} ({b})'] = verses[v]
 list(bible_verses.keys())[0]
 
-main_dir = "/Users/amycweng/DH/EEPS"
+main_dir = "../../DH/EEPS"
 def process_file(tcpID,era): 
     use_cols = ["token","cite_label","qp_label","sent_idx"]
     df = pd.read_csv(f"{main_dir}/encodings_new/{tcpID}_encoded.csv",

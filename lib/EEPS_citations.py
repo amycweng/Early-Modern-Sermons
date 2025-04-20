@@ -6,20 +6,21 @@ from tqdm import tqdm
 import warnings 
 warnings.filterwarnings("ignore", category=pd.errors.DtypeWarning)
 
-FOLDER = '/Users/amycweng/DH/SERMONS_APP/db/data'
-OUTPUT_FOLDER = '/Users/amycweng/DH/CITATIONS'
+from EEPS_helper import folder
+
+FOLDER = f'{folder}/SERMONS_APP/db/data'
+OUTPUT_FOLDER = f'{folder}/CITATIONS'
 
 def PROCESS_CITATIONS(ERA,prefix): 
     formatted_citations = []
     
     body = pd.read_csv(f"{FOLDER}/{ERA}/{prefix}_body.csv",
-                            names = ["tcpID","sidx","section","loc","loc_type","pid","tokens","standardized"])
-    progress = tqdm(enumerate(body["tokens"]))
+                            names = ["tcpID","sidx","section","loc","loc_type","pid","tokens","standardized","pos"])
     # progress = enumerate(body["tokens"])
-    for idx, token_str in progress: 
+    print(ERA,prefix)
+    for idx, token_str in tqdm(enumerate(body["tokens"])): 
         tcpID = body["tcpID"][idx]
         # if tcpID != "B07186": continue
-        progress.set_description(tcpID)
         sidx = body["sidx"][idx]
         token_str = re.sub(r"\<i\>|\<\/i\>"," ",token_str)
         token_str = re.sub(r"\s+"," ",token_str)
@@ -82,7 +83,6 @@ if __name__ == "__main__":
     # target_prefix = "B"
 
     for era in corpora:
-        # if era in ["pre-Elizabeth",'Elizabeth','JamesI']: continue 
         if target_era != "All":
             if era != target_era: 
                 continue 

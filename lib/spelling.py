@@ -2,7 +2,7 @@ import os, json,re
 standardizer = {} # conversion dictionary 
 
 # morphadorner 
-with open("/Users/amycweng/DH/morphadorner-2/data/standardspellings.txt","r") as file: 
+with open("../../DH/morphadorner-2/data/standardspellings.txt","r") as file: 
     standard = file.readlines()
 standard = {x.strip("\n"):None for x in standard} # known spellings 
 

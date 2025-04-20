@@ -2,6 +2,7 @@ import sys,re,json
 sys.path.append('../')
 from visualization import * 
 from EEPS_citationID import * 
+from EEPS_helper import folder 
 from collections import defaultdict
 import pandas as pd
 
@@ -130,10 +131,10 @@ if __name__ == "__main__":
     
     for era_name in era_tcpIDs: 
         all_citations = {}
-        for fp in os.listdir(f"/Users/amycweng/DH/CITATIONS"): 
+        for fp in os.listdir(f"{folder}/CITATIONS"): 
             if era_name != fp.split("_")[0]: continue
             # read citations from file 
-            citation_info = pd.read_csv(f"/Users/amycweng/DH/CITATIONS/{fp}",
+            citation_info = pd.read_csv(f"{folder}/CITATIONS/{fp}",
                         names=['tcpID',"sidx","loc","cidx","citation","outlier","replaced"]
                         )
             citations = read_citations(citation_info)

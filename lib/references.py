@@ -9,7 +9,7 @@ with open('../assets/corpora.json','r') as file:
     corpora = json.load(file)
 
 for era in corpora: 
-    qp_file = f"/Users/amycweng/DH/SERMONS_APP/db/data/{era}/paraphrases.csv"
+    qp_file = f"../../DH/SERMONS_APP/db/data/{era}/paraphrases.csv"
     qp = pd.read_csv(qp_file,header=None)
     qp_tcpIDs = qp[0].tolist()
     qp_sidx = qp[1].tolist()
@@ -29,7 +29,7 @@ for era in corpora:
         tcpIDs = sorted(tcpIDs)
         tcpIDs = [tcpID for tcpID in tcpIDs if tcpID in already_adorned]
         if len(tcpIDs) == 0: continue
-        citations_file = f"/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_citations.csv"
+        citations_file = f"../../DH/SERMONS_APP/db/data/{era}/{prefix}_citations.csv"
         citations = pd.read_csv(citations_file,header=None)
         sindices = citations[1].tolist()
         stcpIDs = citations[0].tolist()
@@ -52,7 +52,7 @@ for era in corpora:
         tcpIDs = tqdm(tcpIDs)
         for tcpID in tcpIDs:
             tcpIDs.set_description(f"{era} {tcpID}")
-            encoding_file = f"/Users/amycweng/DH/EEPS/encodings/{tcpID}_encoded.csv"
+            encoding_file = f"../../DH/EEPS/encodings/{tcpID}_encoded.csv"
             encoding = pd.read_csv(encoding_file)
             encoding = encoding.to_dict(orient='records')
 
@@ -108,4 +108,4 @@ for era in corpora:
             #              'pos' , 'regular' ,'lemma','note_tag','it_tag',
             #              'section_idx','paragraph_idx','section_name'
             #              ]
-            df.to_csv(f"/Users/amycweng/DH/EEPS/encodings_new/{tcpID}_encoded.csv",index=False)
+            df.to_csv(f"../../DH/EEPS/encodings_new/{tcpID}_encoded.csv",index=False)

@@ -1,10 +1,8 @@
 import re,json
 import sys 
 sys.path.append('../')
-from lib.standardization import * 
 from lib.EEPS_segmenter import *
 from lib.EEPS_sermons import *
-from lib.citations import *  
 from EEPS_helper import * 
 
 import pandas as pd 
@@ -58,7 +56,7 @@ def encode(tcpID):
                 elif token == "ENDITALICS": 
                     encoded.append(('</i>',"</i>",'</i>',note_tag))
                 elif token == "NONLATINALPHABET": 
-                    encoded.append((token, "foreign", token, note_tag))
+                    encoded.append((token, "fw-nonla", token, note_tag))
                 
                 else: 
                     encoded.append((token, pos[t], standardized[t], note_tag))
@@ -103,9 +101,7 @@ def process_prefix(tcpIDs,era,prefix):
 
 import os 
 if __name__ == "__main__": 
-    already_adorned = os.listdir('../assets/adorned')
-    already_adorned = {k.split(".txt")[0]:None for k in already_adorned}
-
+  
     with open('../assets/corpora.json','r') as file: 
         corpora = json.load(file)
     
@@ -125,18 +121,10 @@ if __name__ == "__main__":
                 tcpIDs = [target_tcpID]
 
 
-    # redo = {('Elizabeth', 'A1'): 34, ('JamesI', 'A1'): 30, ('JamesI', 'A0'): 28, ('CharlesI', 'A1'): 27, ('Elizabeth', 'A0'): 24, ('CharlesI', 'A0'): 20, ('CharlesII', 'A6'): 20, ('CharlesII', 'A5'): 19, ('WilliamAndMary', 'A4'): 18, ('WilliamAndMary', 'A6'): 17, ('CharlesII', 'A2'): 16, ('WilliamAndMary', 'A5'): 15, ('CharlesII', 'A3'): 15, ('WilliamAndMary', 'A3'): 14, ('CharlesII', 'A4'): 13, ('WilliamAndMary', 'A2'): 10, ('pre-Elizabeth', 'A0'): 8, ('Interregnum', 'A8'): 8, ('Interregnum', 'A7'): 7, ('Interregnum', 'A9'): 6, ('Interregnum', 'A3'): 6, ('JamesI', 'A2'): 6, ('JamesI', 'B'): 6, ('CivilWar', 'A8'): 5, ('pre-Elizabeth', 'A1'): 5, ('CivilWar', 'A9'): 5, ('CivilWar', 'A7'): 4, ('CharlesII', 'B'): 4, ('JamesII', 'A4'): 3, ('Elizabeth', 'A6'): 3, ('CharlesI', 'A6'): 3, ('CharlesII', 'A7'): 3, ('JamesII', 'A3'): 3, ('Interregnum', 'A2'): 3, ('CivilWar', 'A5'): 3, ('CharlesII', 'A9'): 3, ('Interregnum', 'B'): 2, ('CharlesI', 'A7'): 2, ('JamesII', 'A6'): 2, ('WilliamAndMary', 'A7'): 2, ('Interregnum', 'A6'): 2, ('Elizabeth', 'A7'): 2, ('Elizabeth', 'A2'): 2, ('JamesI', 'A6'): 2, ('Elizabeth', 'B'): 2, ('JamesI', 'A7'): 2, ('WilliamAndMary', 'B'): 2, ('Interregnum', 'A4'): 2, ('Interregnum', 'A5'): 2, ('CharlesII', 'A8'): 2, ('CharlesI', 'A3'): 2, ('CharlesI', 'B'): 2, ('CivilWar', 'A6'): 1, ('JamesII', 'B'): 1, ('pre-Elizabeth', 'B'): 1, ('CivilWar', 'B'): 1, ('WilliamAndMary', 'A9'): 1, ('CharlesI', 'A8'): 1, ('CharlesI', 'A5'): 1, ('JamesII', 'A2'): 1}
-    # redo = sorted(list(redo.keys()))
-    # for pair in redo:
-    #         era, prefix = pair 
-            # tcpIDs = sorted(corpora[era][prefix])
-            
-            tcpIDs = [tcpID for tcpID in tcpIDs if tcpID in already_adorned]
-            if len(tcpIDs) == 0: continue
             process_prefix(tcpIDs,era, prefix)
 
             segment_lengths = []
-            text = pd.read_csv(f"/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_body.csv", header=None)
+            text = pd.read_csv(f"{folder}/SERMONS_APP/db/data/{era}/{prefix}_body.csv", header=None)
             for idx, item in enumerate(text[6]): 
                 items = item.split(" ")
                 length = len(items)

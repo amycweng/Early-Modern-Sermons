@@ -131,6 +131,7 @@ def extract(tcpID, filepath):
                 div_text.append(f' {section_name}^{section_type_output}^{section_note} ')
     
     with open(f"../assets/plain_body/{tcpID}.txt","w+") as file:
+        div_text = re.sub(r"\s*[\∣\¦\|\‖]\s*","",div_text)
         div_text = re.sub(r"\s+"," "," ".join(div_text).strip())
         file.writelines(div_text) # write as one long string         
     return num_sermons

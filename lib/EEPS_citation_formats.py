@@ -130,10 +130,10 @@ if __name__ == "__main__":
     
     for era_name in era_tcpIDs: 
         all_citations = {}
-        for fp in os.listdir(f"/Users/amycweng/DH/CITATIONS"): 
+        for fp in os.listdir(f"../../DH/CITATIONS"): 
             if era_name != fp.split("_")[0]: continue
             # read citations from file 
-            citation_info = pd.read_csv(f"/Users/amycweng/DH/CITATIONS/{fp}",
+            citation_info = pd.read_csv(f"../../DH/CITATIONS/{fp}",
                         names=['tcpID',"sidx","loc","cidx","citation","outlier","replaced"]
                         )
             citations = read_citations(citation_info)

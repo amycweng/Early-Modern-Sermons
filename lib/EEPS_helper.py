@@ -1,6 +1,9 @@
 import re 
 import os 
-TCP = '/Users/amycweng/DH/TCP'
+
+folder = "/Users/amycweng/Library/CloudStorage/GoogleDrive-aw3029@princeton.edu/My Drive/DH"
+adorned_folder = "/Users/amycweng/DH/Early-Modern-Sermons/assets/adorned"
+TCP = f'{folder}/TCP'
 
 def isSermon(section_name): 
     if re.search(r"^sermon",section_name): 
@@ -13,7 +16,7 @@ def is_page(item):
     return False 
     
 def is_page_image(item):
-    if re.search(r"^PAGEIMAGE\d+\b",item): 
+    if re.search(r"^PAGEIMAGE\d+",item): 
         return True 
     return False 
 
@@ -59,7 +62,9 @@ def convert_numeral(word):
 # print(convert_numeral("lxxxix"))
 
 def isNumeral(item):
-    if re.match(r"[0-9\•]+",item): 
+    if item == "I": 
+        return False 
+    if re.match(r"^[\d\•]+[\.\,\-\&]*$",item): 
         return True 
     else: 
         num = convert_numeral(item)
@@ -94,9 +99,9 @@ def find_curr_page(idx, adorned, prev_page, isImage=False):
             temp = adorned[idx_to_find_page]
             temp = temp.strip("\n").split("\t")
             if len(temp) == 0: continue
-            if is_page_image(temp[0]) and isImage:
+            if is_page_image(temp[0]) and (isImage or isImage is None):
                 prev_page_type, prev_page, previsRoman = get_page_number(temp[0])
-            elif is_page(temp[0]) and not isImage: 
+            elif is_page(temp[0]) and (not isImage or isImage is None): 
                 prev_page_type, prev_page, previsRoman = get_page_number(temp[0])
             else: 
                 idx_to_find_page -= 1 
@@ -105,14 +110,15 @@ def find_curr_page(idx, adorned, prev_page, isImage=False):
     next_page = None 
     next_page_type = None 
     idx_to_find_page = idx
+
     while next_page is None: 
         if idx_to_find_page < len(adorned): 
             temp = adorned[idx_to_find_page]
             temp = temp.strip("\n").split("\t")
             if len(temp) == 0: continue
-            if is_page_image(temp[0]) and isImage:
+            if is_page_image(temp[0]) and (isImage or isImage is None):
                 next_page_type, next_page, nextisRoman = get_page_number(temp[0])
-            elif is_page(temp[0]) and not isImage: 
+            elif is_page(temp[0]) and (not isImage or isImage is None): 
                 next_page_type, next_page, nextisRoman = get_page_number(temp[0])
             else: 
                 idx_to_find_page += 1

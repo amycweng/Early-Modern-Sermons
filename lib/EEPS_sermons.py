@@ -1,6 +1,7 @@
 import json,csv
 import sys,re
 import pandas as pd 
+from EEPS_helper import folder 
 sys.path.append('../')
 import os, math
 # standardized with GPT 3.5 
@@ -18,6 +19,7 @@ with open('../assets/corpora.json','r') as file:
 def combine_punc_with_text(segment): 
     segment = re.sub(r'\s+([,.?!;:)])', r'\1', segment)
     segment = re.sub(r'([(])\s+', r'\1', segment) 
+    segment = re.sub(" ∣ |∣ ","",segment)
     segment = re.sub(r"\s+"," ",segment)
     start_it = re.findall(r"\<i\>",segment)
     end_it = re.findall(r"\<\/i\>",segment)
@@ -33,6 +35,7 @@ class Sermons():
         self.prefix = prefix
         self.sent_id = [] # tuples of ((tcpID, chunk idx, location), subchunk idx) representing the subchunk's ID
         self.standard = [] # subchunk strings that are standardized
+        self.pos = [] # part of speech 
         self.fw_subchunks = {} # IDs of subchunks with more than three foreign words
         self.tokens = [] # subchunk strings that are tokenized
 
@@ -90,6 +93,7 @@ class Sermons():
           for s_idx, encodings in items.items():
               current = []
               tokens = []
+              curr_pos = []
               part_id = 0
 
               if is_margin:
@@ -133,12 +137,14 @@ class Sermons():
                             standard_spelling = s 
                     
                     current.append(standard_spelling)
+                    curr_pos.append(pos)
 
                   if 'fw' in pos: # foreign words
                       fw.append(fw_idx)
                   fw_idx += 1 
               
               self.standard.append((" ".join(current)))
+              self.pos.append((" ").join(curr_pos))
               self.sent_id.append((sid,part_id))
               self.tokens.append(" ".join(tokens))
               if check_foreign(fw):
@@ -175,6 +181,7 @@ def PROCESS_SERMONS(era,prefix,text,marginalia,info):
     margins_formatted = []
 
     tokenized = corpus.get_chunks(corpus.tokens)
+    part_of_speech = corpus.get_chunks(corpus.pos)
     standardized = corpus.get_chunks(corpus.standard)
 
     for key, segment in tokenized.items():
@@ -196,7 +203,8 @@ def PROCESS_SERMONS(era,prefix,text,marginalia,info):
                 'loc_type': loc_type, 
                 'pid': i[2], # paragraph index 
                 'tokens': combine_punc_with_text(segment), 
-                'standardized': combine_punc_with_text(standardized[",".join(key)])
+                'standardized': combine_punc_with_text(standardized[",".join(key)]),
+                'pos':combine_punc_with_text(part_of_speech[",".join(key)])
             })
             # body_formatted.append({
             #     'tcpID': tcpID,
@@ -210,7 +218,8 @@ def PROCESS_SERMONS(era,prefix,text,marginalia,info):
                     'sid': sidx,
                     'nid': nid,
                     'tokens': combine_punc_with_text(part), 
-                    'standardized': combine_punc_with_text(standardized[",".join(key)][nid])
+                    'standardized': combine_punc_with_text(standardized[",".join(key)][nid]),
+                    'pos':combine_punc_with_text(part_of_speech[",".join(key)][nid])
                 })
     
     if len(body_formatted) > 0: 
@@ -219,13 +228,13 @@ def PROCESS_SERMONS(era,prefix,text,marginalia,info):
         #     writer = csv.DictWriter(file, fieldnames=body_formatted[0].keys())
         #     writer.writerows(body_formatted)
 
-        with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_body.csv','w+') as file: 
+        with open(f'{folder}/SERMONS_APP/db/data/{era}/{prefix}_body.csv','w+') as file: 
             writer = csv.DictWriter(file, fieldnames=body_formatted[0].keys())
             writer.writerows(body_formatted)
             # print(f'{prefix} body done')
 
-        with open(f'/Users/amycweng/DH/SERMONS_APP/db/data/{era}/{prefix}_margin.csv','w+') as file: 
-            writer = csv.DictWriter(file, fieldnames=['tcpID','sid','nid','tokens','standardized'])
+        with open(f'{folder}/SERMONS_APP/db/data/{era}/{prefix}_margin.csv','w+') as file: 
+            writer = csv.DictWriter(file, fieldnames=margins_formatted[0].keys())
             writer.writerows(margins_formatted)
             # print(f'{prefix} marginalia done')
 
