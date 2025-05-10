@@ -223,19 +223,16 @@ def PROCESS_SERMONS(era,prefix,text,marginalia,info):
                 })
     
     if len(body_formatted) > 0: 
-        # # for testing purposes: 
-        # with open(f'../assets/segments.csv','w+') as file: 
-        #     writer = csv.DictWriter(file, fieldnames=body_formatted[0].keys())
-        #     writer.writerows(body_formatted)
+        if len(body_formatted) > 0: 
+            with open(f'{folder}/SERMONS_APP/db/data/{era}/{prefix}_body.csv','w+') as file: 
+                writer = csv.DictWriter(file, fieldnames=body_formatted[0].keys())
+                writer.writerows(body_formatted)
+                # print(f'{prefix} body done')
 
-        with open(f'{folder}/SERMONS_APP/db/data/{era}/{prefix}_body.csv','w+') as file: 
-            writer = csv.DictWriter(file, fieldnames=body_formatted[0].keys())
-            writer.writerows(body_formatted)
-            # print(f'{prefix} body done')
-
-        with open(f'{folder}/SERMONS_APP/db/data/{era}/{prefix}_margin.csv','w+') as file: 
-            writer = csv.DictWriter(file, fieldnames=margins_formatted[0].keys())
-            writer.writerows(margins_formatted)
+        if len(margins_formatted) > 0: 
+            with open(f'{folder}/SERMONS_APP/db/data/{era}/{prefix}_margin.csv','w+') as file: 
+                writer = csv.DictWriter(file, fieldnames=margins_formatted[0].keys())
+                writer.writerows(margins_formatted)
             # print(f'{prefix} marginalia done')
 
         with open(f'../assets/foreign/{era}_{prefix}.json','w+') as file: 

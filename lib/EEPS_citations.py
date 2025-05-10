@@ -16,12 +16,13 @@ def PROCESS_CITATIONS(ERA,prefix):
     
     body = pd.read_csv(f"{FOLDER}/{ERA}/{prefix}_body.csv",
                             names = ["tcpID","sidx","section","loc","loc_type","pid","tokens","standardized","pos"])
-    # progress = enumerate(body["tokens"])
+    progress = tqdm(enumerate(body["tokens"]))
     print(ERA,prefix)
-    for idx, token_str in tqdm(enumerate(body["tokens"])): 
-        tcpID = body["tcpID"][idx]
+    for idx, token_str in progress: 
+        tcpID = body["tcpID"].iloc[idx]
         # if tcpID != "B07186": continue
-        sidx = body["sidx"][idx]
+        sidx = body["sidx"].iloc[idx]
+        progress.set_description(tcpID)
         token_str = re.sub(r"\<i\>|\<\/i\>"," ",token_str)
         token_str = re.sub(r"\s+"," ",token_str)
         
@@ -38,34 +39,33 @@ def PROCESS_CITATIONS(ERA,prefix):
                 'outlier': [None if cidx not in outliers else outliers[cidx]][0],
                 'replaced': replaced[cidx]
             })
-    print('Processed',tcpID) 
-    print(f'Processed {ERA} {prefix} texts')
     
-
-    marginalia = pd.read_csv(f"{FOLDER}/{ERA}/{prefix}_margin.csv"
-                    , names = ["tcpID","sidx","nidx","tokens","standardized"])
-    progress = tqdm(enumerate(marginalia["tokens"]))
-    # progress = enumerate(marginalia["tokens"])
-    for idx, token_str in progress: 
-        tcpID = marginalia["tcpID"][idx]
-        # if tcpID != "B07186": continue
-        progress.set_description(tcpID+" marginalia") 
-        # if "ii cor iiii" not in token_str: continue 
-        sidx = marginalia["sidx"][idx]
-        nidx = marginalia["nidx"][idx]
-        token_str = re.sub(r"\<i\>|\<\/i\>"," ",token_str)
-        token_str = re.sub(r"\s+"," ",token_str)
-        cited, outliers, replaced = extract_citations(token_str)
-        for cidx, c_list in cited.items(): 
-            formatted_citations.append({
-                'tcpID': tcpID,
-                'sidx': sidx,
-                'nidx': f'Note {nidx}', 
-                'cidx': cidx, 
-                'citation': "; ".join(c_list),
-                'outlier': [None if cidx not in outliers else outliers[cidx]][0],
-                'replaced': replaced[cidx]
-            })
+    if f"{prefix}_margin.csv" in os.listdir(f"{FOLDER}/{ERA}"): 
+         
+        marginalia = pd.read_csv(f"{FOLDER}/{ERA}/{prefix}_margin.csv"
+                        , names = ["tcpID","sidx","nidx","tokens","standardized","pos"])
+        progress = tqdm(enumerate(marginalia["tokens"]))
+        for idx, token_str in progress: 
+            tcpID = marginalia["tcpID"].iloc[idx]
+            progress.set_description(tcpID)
+            # if tcpID != "B07186": continue
+            # if "ii cor iiii" not in token_str: continue 
+            sidx = marginalia["sidx"].iloc[idx]
+            nidx = marginalia["nidx"].iloc[idx]
+            token_str = re.sub(r"\<i\>|\<\/i\>"," ",token_str)
+            token_str = re.sub(r"\s+"," ",token_str)
+            cited, outliers, replaced = extract_citations(token_str)
+            for cidx, c_list in cited.items(): 
+                formatted_citations.append({
+                    'tcpID': tcpID,
+                    'sidx': sidx,
+                    'nidx': f'Note {nidx}', 
+                    'cidx': cidx, 
+                    'citation': "; ".join(c_list),
+                    'outlier': [None if cidx not in outliers else outliers[cidx]][0],
+                    'replaced': replaced[cidx]
+                })
+        print(f'Processed {ERA} {prefix} marginalia')
     if len(formatted_citations) > 0: 
         with open(f"{OUTPUT_FOLDER}/{ERA}_{prefix}_citations.csv","w+") as outfile: 
             writer = csv.DictWriter(outfile, fieldnames=formatted_citations[0].keys())
@@ -74,6 +74,7 @@ def PROCESS_CITATIONS(ERA,prefix):
 
 if __name__ == "__main__":
     # print(extract_citations("Num. 13.30. & 14.9."))
+   
     with open('../assets/corpora.json','r') as file: 
         corpora = json.load(file)
     target_era = input("Enter era or All: ")
@@ -83,11 +84,13 @@ if __name__ == "__main__":
     # target_prefix = "B"
 
     for era in corpora:
+       
         if target_era != "All":
             if era != target_era: 
                 continue 
+        
         for prefix,tcpIDs in corpora[era].items(): 
-            # if era in ['CharlesI'] and prefix in ['B','A0']:continue
+
             if len(tcpIDs) == 0: continue
             if target_prefix != "All":
                 if prefix != target_prefix: 

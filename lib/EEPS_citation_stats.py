@@ -82,7 +82,7 @@ def get_citations(citations):
                 if len(ref) == 2: 
                     verse = ref[1]
                     if '*' not in verse and "^" not in verse: 
-                        key = f"{book}-{chapter}-{verse}"
+                        key = f"{book} {chapter}.{verse}"
                         
                         if key not in all_verses: 
                             all_verses[key] = []
@@ -90,7 +90,7 @@ def get_citations(citations):
                         all_verses[key].append(tcpID)
                         segment_ids[key].append(f"{tcpID},{sidx}")
                 else: 
-                    key = f"{book}-{chapter}" 
+                    key = f"{book} {chapter}" 
                     if key not in segment_ids: 
                         segment_ids[key] = []
                     segment_ids[key].append(f"{tcpID},{sidx}")
@@ -106,42 +106,42 @@ def count_citations(c,v): # chapter and verse citations only
         k = k.split(" ")
         if k[0].isdigit():
             chap, verse = k[2].split(".")
-            new_k = f"{k[0]}-{k[1]}-{chap}.{verse}"
+            new_k = f"{k[0]} {k[1]} {chap}.{verse}"
         else: 
             chap, verse = k[1].split(".")
-            new_k = f"{k[0]}-{chap}.{verse}"
+            new_k = f"{k[0]} {chap}.{verse}"
         c_count[new_k].append(len(ver))
 
     for k, ver in c.items(): 
         k = k.split(" ")
         if k[0].isdigit():
             chap = k[2]
-            new_k = f"{k[0]}-{k[1]}-{chap}"
+            new_k = f"{k[0]} {k[1]} {chap}"
         else: 
             chap = k[1]
-            new_k = f"{k[0]}-{chap}"
+            new_k = f"{k[0]} {chap}"
         c_count[new_k].append(len(ver))
     c_count = {k:sum(v) for k,v in c_count.items()}
     return c_count
 
-import os 
-if __name__ == "__main__": 
-    with open(f"../assets/corpora.json") as file:
-        era_tcpIDs = json.load(file)
+# import os 
+# if __name__ == "__main__": 
+#     with open(f"../assets/corpora.json") as file:
+#         era_tcpIDs = json.load(file)
     
-    for era_name in era_tcpIDs: 
-        all_citations = {}
-        for fp in os.listdir(f"{folder}/CITATIONS"): 
-            if era_name != fp.split("_")[0]: continue
-            # read citations from file 
-            citation_info = pd.read_csv(f"{folder}/CITATIONS/{fp}",
-                        names=['tcpID',"sidx","loc","cidx","citation","outlier","replaced"]
-                        )
-            citations = read_citations(citation_info)
-            all_citations.update(citations)
+#     for era_name in era_tcpIDs: 
+#         all_citations = {}
+#         for fp in os.listdir(f"{folder}/CITATIONS"): 
+#             if era_name != fp.split("_")[0]: continue
+#             # read citations from file 
+#             citation_info = pd.read_csv(f"{folder}/CITATIONS/{fp}",
+#                         names=['tcpID',"sidx","loc","cidx","citation","outlier","replaced"]
+#                         )
+#             citations = read_citations(citation_info)
+#             all_citations.update(citations)
             
-        b, c,v = get_citations(all_citations)
-        # c_count = count_citations(c,v)
-        # with open(f'../assets/citations/{era_name}_citations.json','w+') as file: 
-        #     json.dump((b,c,v),file)
+#         b, c,v = get_citations(all_citations)
+#         # c_count = count_citations(c,v)
+#         # with open(f'../assets/citations/{era_name}_citations.json','w+') as file: 
+#         #     json.dump((b,c,v),file)
     

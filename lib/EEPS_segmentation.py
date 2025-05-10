@@ -112,7 +112,9 @@ if __name__ == "__main__":
         if target_era != "All":
             if era != target_era: 
                 continue 
+        
         for prefix,tcpIDs in corpora[era].items(): 
+            if len(tcpIDs) == 0: continue 
             if target_prefix != "All":
                 if prefix != target_prefix: 
                     continue 
@@ -124,7 +126,7 @@ if __name__ == "__main__":
             process_prefix(tcpIDs,era, prefix)
 
             segment_lengths = []
-            text = pd.read_csv(f"{folder}/SERMONS_APP/db/data/{era}/{prefix}_body.csv", header=None)
+            text = pd.read_csv(f"../../SERMONS_APP/db/data/{era}/{prefix}_body.csv", header=None)
             for idx, item in enumerate(text[6]): 
                 items = item.split(" ")
                 length = len(items)
