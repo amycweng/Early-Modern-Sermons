@@ -8,21 +8,24 @@ numBook_to_proper = {v:k for k,v in numBook.items()}
 
 def extract_citations(n):
     citations, outliers = {}, {}
-    n = clean_text(n)
 
     spans,replaced = identify_citation_candidates(n)
-    # print(spans,replaced)
-    
+    # if len(spans) > 0: 
+    #     if re.search("Tit. 2\.",replaced[0]): 
+    #         print()
+    #         print(spans, replaced) 
+    #     else: 
+    #         return {}, {}, []
+    # else: return {}, {}, []
+
     count = 0 
     if len(spans) > 0: 
         for item in spans:
-            if re.search(r"\bch \d+ v|\d+ \bch\b \d+|\&c", item): 
-                item = re.sub(r"\bch\b|\bv\b|\&c", '',item)
-                item = re.sub(r"\s+"," ",item)
+            item = re.sub(r"\bc[hap\.]*\b|\bv[er\.]*\b|\bl[ib\.]*\b|\b0\b", '',item.lower())
+            item = re.sub(r"\s+"," ",item)
             item = re.sub(r"([^\w\d\•|\◊])$","",item) 
             item = re.sub(r"\s+"," ", item).strip(" ").split(" ")
-            
-            if item[-1] == "ch": item[-1] = "" # philippians 3 1 ch case 
+            item = [x for x in item if x != "."]
             if item[0][-1] == ",": 
                 # case of Ecclus, 25.16 in A09053
                 book, nums = item[0].strip(","), item[2:]
@@ -39,12 +42,12 @@ def extract_citations(n):
  
             item = " ".join(item)
             decomposed = decompose(item)
-            # print(decomposed)
             if len(decomposed[0]) > 0: 
                 citations[count] = decomposed[0]
             if len(decomposed[1]) > 0: 
                 outliers[count] = decomposed[1]
             count += 1 
+
     return citations, outliers, replaced  
 
 
@@ -54,7 +57,9 @@ def extract_citations(n):
 '''Standardize abbreviations'''
 num_to_text = {'1':'one','2':'two','3':'three','4':'four'}
 def identify_citation_candidates(text): 
+    text = clean_text(text)
     text = text.split(" ")
+
     spans = []
     replaced = []
     idx = 0
@@ -62,35 +67,47 @@ def identify_citation_candidates(text):
         if re.search(r"^'",word): continue
         if idx == len(text): 
             break
-        word = clean_word(text[idx])
-
-        if re.search(r"^js$|^ch$|^de$|^the$|^can$|^he$|^am$|^time$|$the\^|^tyme$|^ti\^|^i\^|^Apol$|^ne$|^te$|^ti$|^tb$|^ac$|^child|^chyld",word): continue # without capitalization and a period 
+        orig = text[idx]
+        word = clean_word(text[idx])        
+        if re.search(r"^js$|^ch$|^de$|^the$|^can$|^he$|^am$|^time$|$the\^|^tyme$|^ti\^|^i\^|^Apol$|^ne$|^te$|^ti$|^tb$|^ac$|^child|^chyld",word): 
+            idx += 1 
+            continue # without capitalization and a period 
         # initial i's have been converted to j's       
 
-        # identififed a valid abbreviation         
+        # identififed a valid abbreviation      
         if word in abbrev_to_book:
-            if (idx+1) < len(text): 
+            
+            next_idx = idx+1 
+            if next_idx < len(text): 
                 # must be followed by at least one number 
-                next_isNum = isNumeral(text[idx+1])
-                if next_isNum and re.match("I|\•",text[idx+1]): 
+                if text[next_idx].lower().strip('.') in ['chap','ch']: 
+                    if (next_idx+1) < len(text): 
+                        next_idx += 1 
+                next_word = text[next_idx]
+                next_isNum = isNumeral(next_word)
+
+                if next_isNum and re.match("I|\•",next_word): 
                     # the latter to prevent false positives caused by the conversion of the pronoun 'I' to 1 
                     idx += 1 
                     continue
-                if text[idx][0].islower() and re.match(r'\•|\◊',text[idx+1]): 
+                if text[idx][0].islower() and re.match(r'\•|\◊',next_word): 
                     # current word is lower case 
                     # AND next word starts with an illegible char/word
                     idx += 1 
                     continue
-                if not next_isNum and len(text[idx+1]) >= 10: 
+                if not next_isNum and len(next_word) >= 10: 
                     # next word is not a number 
                     # AND next word is a long word 
                     idx += 1 
                     continue
-                if (idx+2) < len(text):
-                    next2_isNum = isNumeral(text[idx+2])
+                if (next_idx+1) < len(text):
+                    if text[next_idx+1].lower().strip('.') in ['chap','ch']: 
+                        if (next_idx+2) < len(text): 
+                            next_idx += 1 
+                    next2_isNum = isNumeral(text[next_idx])
                     # both succeeding words are not numbers 
                     if (not next_isNum) and (not next2_isNum):
-                        if text[idx+1] != "of" and not re.search("^Sol",text[idx+2]): # Song of Solomon 
+                        if text[next_idx] != "of" and not re.search("^Sol",text[next_idx]): # Song of Solomon 
                             idx += 1 
                             continue
                 elif not next_isNum: 
@@ -102,11 +119,10 @@ def identify_citation_candidates(text):
                 idx += 1 
                 continue
 
-
             # update term to the normalized version 
             word = abbrev_to_book[word]
             orig = text[idx]
-
+            
             # deal with numbered books 
             if re.search(r'samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|esdras|maccabees|john',word): 
                 if idx > 0: 
@@ -149,17 +165,10 @@ def identify_citation_candidates(text):
                 elif re.search(r"^[cC]h$|^[Tt]he$",orig): 
                     idx += 1 
                     continue
-
-            idx += 1 
-            curr = [orig, text[idx]]
-            span = [word,convert_numeral(text[idx])]
-            # print(curr,span)
-            if (idx+1) < len(text):
-                if next2_isNum: 
-                    idx += 1
-                    curr.append(text[idx])
-                    span.append(convert_numeral(text[idx]))
-                    
+            
+            # add current word 
+            curr = [orig]
+            span = [word]
             idx += 1 
             span, curr, idx = get_span(idx,text,span,curr)
             span = [str(w) for w in span]
@@ -185,22 +194,23 @@ def decompose(phrase):
     book = phrase[0]
     
     phrase = " ".join(phrase[1:]).strip()
-
-    if re.search('—|\,|\,$',phrase): 
-        phrase = re.sub('—','-',phrase)
-        phrase = re.sub('\,-','-',phrase)
-        phrase = re.sub('\,$| \,$','',phrase)
+    
     phrase = re.sub(r'\s*\,\s*',',',phrase)
     phrase = re.sub(r'\s*\.\s*','.',phrase)
     phrase = re.sub(r'\s*\:\s*','.',phrase)
     phrase = re.sub(r'\s*\&\s*','&',phrase)
+    phrase = re.sub('—','-',phrase)
+    phrase = re.sub('\,-|\,—','-',phrase)
     phrase = re.sub(r'\s*\-\s*','-',phrase)
+    # print(phrase)
 
     # if the text is simply a single citation, call simple() to append the citation to the list of citations 
-    if re.search(r'^[\d\•|\◊]+[\s\.\:]{1}[\d\•|\◊]+$',phrase):
-        c,o = simple(book,phrase)
-        citations.extend(c)
-        outliers.extend(o)
+    if re.fullmatch(r'[\d.]+', phrase):
+        parts = extract_chapter_verse_pairs(phrase)
+        for part in parts: 
+            c,o = simple(book,part)
+            citations.extend(c)
+            outliers.extend(o)
     # if there are ampersands in the text, split the text up by the ampersands 
     elif re.search('&',phrase): 
         passages = phrase.split('&')
@@ -241,7 +251,7 @@ def decompose(phrase):
             else:  
                 outliers.append(f"{book} {has_chapter}{passage}")
     
-    # if there are no ampersands & hyphens but there are commas  
+    # if there are no ampersands but there are commas  
     elif re.search(',',phrase): 
         c, o = comma(book,phrase)
         citations.extend(c)

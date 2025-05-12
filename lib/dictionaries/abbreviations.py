@@ -514,6 +514,7 @@ abbrev = {
     'ezekiel':
     [
         'ez',
+        'zek',
         '^ezek',
         '^zech',
         'aezek',
@@ -1899,7 +1900,6 @@ abbrev = {
         'zechat',
         'zeck',
         'zect',
-        'zek',
         'zich',
         'zoc',
         'zoch',

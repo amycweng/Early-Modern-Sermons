@@ -10,6 +10,8 @@ from EEPS_helper import folder
 
 FOLDER = f'{folder}/SERMONS_APP/db/data'
 OUTPUT_FOLDER = f'{folder}/CITATIONS'
+# OUTPUT_FOLDER = f'/Users/amycweng/Desktop/CITATIONS'
+
 
 def PROCESS_CITATIONS(ERA,prefix): 
     formatted_citations = []
@@ -20,7 +22,9 @@ def PROCESS_CITATIONS(ERA,prefix):
     print(ERA,prefix)
     for idx, token_str in progress: 
         tcpID = body["tcpID"].iloc[idx]
-        # if tcpID != "B07186": continue
+
+        # if tcpID != "B27584": continue
+
         sidx = body["sidx"].iloc[idx]
         progress.set_description(tcpID)
         token_str = re.sub(r"\<i\>|\<\/i\>"," ",token_str)
@@ -47,6 +51,7 @@ def PROCESS_CITATIONS(ERA,prefix):
         progress = tqdm(enumerate(marginalia["tokens"]))
         for idx, token_str in progress: 
             tcpID = marginalia["tcpID"].iloc[idx]
+            # if tcpID != "B27584": continue
             progress.set_description(tcpID)
             # if tcpID != "B07186": continue
             # if "ii cor iiii" not in token_str: continue 
@@ -80,7 +85,7 @@ if __name__ == "__main__":
     target_era = input("Enter era or All: ")
     target_prefix = input("Enter prefix or All: ")
 
-    # target_era = "JamesI"
+    # target_era = "WilliamAndMary"
     # target_prefix = "B"
 
     for era in corpora:

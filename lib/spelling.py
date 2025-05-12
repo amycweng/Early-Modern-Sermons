@@ -15,7 +15,7 @@ for fp in os.listdir('../assets/vocab'):
         standard.update({n.lower():None for n in new_standard})
 
 # Biblical entities 
-with open(f"../assets/misc/TIPNR - Translators Individualised Proper Names with all References - STEPBible.org CC BY.txt") as file: 
+with open(f"../assets/TIPNR - Translators Individualised Proper Names with all References - STEPBible.org CC BY.txt") as file: 
     data = file.readlines()
 in_entities_section = False
 entities = []

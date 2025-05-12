@@ -1,17 +1,12 @@
 import re
 from EEPS_helper import *
-from lib.dictionaries.abbreviations import * 
+from dictionaries.abbreviations import * 
 '''
 Clean text
 '''
 def clean_text(n): 
     # remove everything that is not an alphabetical character, integer, comma, ampersand, hyphen, gap letter, gap word, period, apostrophe or a single space
     n = re.sub(r'[^\w\d\,\&\-\—\•\◊\(\)\.\'\"\: ]','',str(n))
-    
-    # # strip away letters indicating verse or chapter, as well as the phrase 'of Sol' which follows 'Song' or 'Wisdom'
-    # n = re.sub(r"\b[lL]\b|\b[vV]erse\b|\b[vV]ers\b|\b[vV]er\b|\b[cC]ap\b|\b[Cc]hap\b|\b[cC]hapter\b|\bof\b|\bSol\b|\bSolomon\b"," ",n)
-    # if re.search(r"[\w+]\b[vc]\b[\w+]",n): # not surrounded by numbers; less likely it means verse and more that it is a roman numeral
-    #     n = re.sub(r"\b[vc]\b"," ",n)
     
     # normalize conjunctions 
     n = re.sub(r"\band\b|\bet\b|\b\&\b|\b& &\b",' & ', n)
@@ -41,15 +36,14 @@ def include_in_span(w,w2):
     w2 = re.sub(r"[\.\,\&\-\—\:]","",w2).lower()
     if isNumeral(w_clean):
         num = convert_numeral(w_clean)
-
         if re.match(r"[1-4\.]",str(num)) and w2 in abbrev_to_book:
             w2 = abbrev_to_book[w2]
             if f"{num} {w2}" in numBook: 
                 return False 
         return True 
-    if re.match(r'^[cvl]{1}$',w_clean):
+    if re.match(r'^[cvl]{1}$',w_clean.lower()):
         return True 
-    if re.match(r"\bverse\b|\bvers\b|\bver\b|\bcap\b|\bchap\b|\bchapter\b|\bch\b|\bof\b|\bSol\b|\bSolomon\b",w_clean): 
+    if re.match(r"\bverse\b|\bvers\b|\bver\b|\bcap\b|\bchap\b|\bchapter\b|\bch\b|\bof\b|\bSol\b|\bSolomon\b",w_clean.lower()): 
         return True 
     if re.match(r"[\&\-\—\:]",w):
         return True 
@@ -115,7 +109,7 @@ def comma(book, passage):
     # remove duplicate spaces 
     passage = re.sub('  ',' ',passage)  
     passage = re.sub(rf'{book}| ,','',passage).strip()
-    
+
     items = passage.split(',')
     chapter = '' 
     verse = ''
@@ -124,7 +118,9 @@ def comma(book, passage):
         if "." in w: 
             w = w.split(".")
             chapter = w[0] + "."
-            add_item = True 
+            for num in w[1:]: 
+                phrases.append(f"{book} {chapter}{num}")
+            continue 
         elif ":" in w: 
             w = w.split(":")
             chapter = w[0] + "."
@@ -141,16 +137,12 @@ def comma(book, passage):
         if add_item: 
             if len(w) > 1: 
                 verse = w[1].strip(" ")
-                if not re.search(r"[^\d+]",verse):
-                    phrases.append(f'{book} {chapter}{verse}')
-                else: 
-                    outliers.append(f'{book} {chapter}{verse}')
             else: 
-                chapter = w[0]
-                if not re.search(r"[^\d+]",w[0]):
-                    phrases.append(f'{book} {chapter}')
-                else: 
-                    outliers.append(f'{book} {chapter}')
+                verse = w[0]
+            if not re.search(r"[^\d+]",verse):
+                phrases.append(f'{book} {chapter}{verse}')
+            else: 
+                outliers.append(f'{book} {chapter}{verse}')
 
     return phrases,outliers
 
@@ -172,6 +164,37 @@ def simple(book, passage):
         if not re.search(r"[^\d+]",nums[0]):
             return [f'{book} {nums[0]}.{nums[1]}'],[]
     return [],[f'{book} {passage}'] 
+
+
+'''
+'''
+def extract_chapter_verse_pairs(phrase):
+    # Match only digits and periods
+    if re.fullmatch(r'[\d.]+', phrase):
+        numbers = re.findall(r'\d+', phrase)
+        n = len(numbers)
+
+        if n == 3:
+            # Special case: 3 digits → 1 chapter, 2 verses
+            chapter = int(numbers[0])
+            verse1 = int(numbers[1])
+            verse2 = int(numbers[2])
+            return [f"{chapter}.{verse1}", f"{chapter}.{verse2}"]
+
+        elif n % 2 == 0:
+            # Even number of digits → treat as chapter-verse pairs
+            pairs = []
+            for i in range(0, n, 2):
+                chapter = int(numbers[i])
+                verse = int(numbers[i+1])
+                pairs.append(f"{chapter}.{verse}")
+            return pairs
+
+    return []  # Not valid
+
+# print(extract_chapter_verse_pairs("1.2.3.4"))    # ['1.2', '3.4']
+# print(extract_chapter_verse_pairs("2.5.8"))      # ['2.5', '2.8']
+
 
 '''
 These are cases of continuous citation, 

@@ -33,8 +33,9 @@ def findTextTCP(id):
 roman_to_int = {"i": 1, "v": 5, "x": 10, "l": 50, "c": 100, "d": 500, "m": 1000}
 def convert_numeral(word):
     orig_word = word
-
     word = word.lower()
+    if re.search(r"c[hap]*\.|v[erse]*\.",word.lower()): 
+        return 0
     word = re.sub("\.","",word) # strip period if Roman numeral 
     word = re.sub("j|J","i",word)
     # up to 4 because there are "iiii" and "xxxx"
@@ -53,7 +54,7 @@ def convert_numeral(word):
         return num
     else: 
         return orig_word 
-
+# print(convert_numeral('c.'))
 # print(convert_numeral('xlx'))
 # print(convert_numeral("cxlvii"))
 # print(convert_numeral("cxlxi"))
@@ -64,7 +65,7 @@ def convert_numeral(word):
 def isNumeral(item):
     if item == "I": 
         return False 
-    if re.match(r"^[\d\•]+[\.\,\-\&]*$",item): 
+    if re.match(r"^[\d\•]+[\.\,\-\&]*",item): 
         return True 
     else: 
         num = convert_numeral(item)

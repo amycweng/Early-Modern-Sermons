@@ -124,24 +124,43 @@ def count_citations(c,v): # chapter and verse citations only
     c_count = {k:sum(v) for k,v in c_count.items()}
     return c_count
 
-# import os 
-# if __name__ == "__main__": 
-#     with open(f"../assets/corpora.json") as file:
-#         era_tcpIDs = json.load(file)
+import os 
+if __name__ == "__main__": 
+    with open(f"../assets/corpora.json") as file:
+        era_tcpIDs = json.load(file)
     
-#     for era_name in era_tcpIDs: 
-#         all_citations = {}
-#         for fp in os.listdir(f"{folder}/CITATIONS"): 
-#             if era_name != fp.split("_")[0]: continue
-#             # read citations from file 
-#             citation_info = pd.read_csv(f"{folder}/CITATIONS/{fp}",
-#                         names=['tcpID',"sidx","loc","cidx","citation","outlier","replaced"]
-#                         )
-#             citations = read_citations(citation_info)
-#             all_citations.update(citations)
+    for era_name in era_tcpIDs: 
+        all_citations = {}
+        for fp in os.listdir(f"{folder}/CITATIONS"): 
+            if era_name != fp.split("_")[0]: continue
+            # read citations from file 
+            citation_info = pd.read_csv(f"{folder}/CITATIONS/{fp}",
+                        names=['tcpID',"sidx","loc","cidx","citation","outlier","replaced"]
+                        )
+            citations = read_citations(citation_info)
+            all_citations.update(citations)
             
-#         b, c,v = get_citations(all_citations)
-#         # c_count = count_citations(c,v)
-#         # with open(f'../assets/citations/{era_name}_citations.json','w+') as file: 
-#         #     json.dump((b,c,v),file)
-    
+        b, c,v = get_citations(all_citations)
+        # c_count = count_citations(c,v)
+        # with open(f'../assets/citations/{era_name}_citations.json','w+') as file: 
+        #     json.dump((b,c,v),file)
+
+
+# pre-Elizabeth
+# 961 labels and 4757 citations
+# Elizabeth
+# 9016 labels and 40846 citations
+# JamesI
+# 18736 labels and 82745 citations
+# CharlesI
+# 19380 labels and 78652 citations
+# CivilWar
+# 16380 labels and 51334 citations
+# Interregnum
+# 18936 labels and 76999 citations
+# CharlesII
+# 25053 labels and 142386 citations
+# JamesII
+# 8870 labels and 18088 citations
+# WilliamAndMary
+# 15147 labels and 50984 citations
