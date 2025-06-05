@@ -1,6 +1,8 @@
 import re
 from EEPS_helper import *
 from dictionaries.abbreviations import * 
+
+
 '''
 Clean text
 '''
@@ -68,6 +70,9 @@ def get_span(next_idx:int,text_list:list,span:list,curr:list):
         next_word = text_list[next_idx]
         if (next_idx + 1) < len(text_list):
             next_word2 = text_list[next_idx+1]
+    if re.search(r"[oO]f", str(span[-1])): 
+        span = span[:-1]
+        curr = curr[:-1]
     return (span, curr, next_idx)
 
 
@@ -169,30 +174,18 @@ def simple(book, passage):
 '''
 '''
 def extract_chapter_verse_pairs(phrase):
-    # Match only digits and periods
+    # Match only digits and periods, no spaces 
     if re.fullmatch(r'[\d.]+', phrase):
         numbers = re.findall(r'\d+', phrase)
-        n = len(numbers)
-
-        if n == 3:
-            # Special case: 3 digits → 1 chapter, 2 verses
-            chapter = int(numbers[0])
-            verse1 = int(numbers[1])
-            verse2 = int(numbers[2])
-            return [f"{chapter}.{verse1}", f"{chapter}.{verse2}"]
-
-        elif n % 2 == 0:
-            # Even number of digits → treat as chapter-verse pairs
-            pairs = []
-            for i in range(0, n, 2):
-                chapter = int(numbers[i])
-                verse = int(numbers[i+1])
-                pairs.append(f"{chapter}.{verse}")
-            return pairs
+        pairs = []
+        chapter = numbers[0]
+        for verse in numbers[1:]:
+            pairs.append(f"{chapter}.{verse}")
+        return pairs
 
     return []  # Not valid
 
-# print(extract_chapter_verse_pairs("1.2.3.4"))    # ['1.2', '3.4']
+# print(extract_chapter_verse_pairs("1.2.3.4"))    # ['1.2', '1.3', '1.4']
 # print(extract_chapter_verse_pairs("2.5.8"))      # ['2.5', '2.8']
 
 
@@ -226,7 +219,7 @@ def continuous(book, w):
             end = "".join(start[:len(start)-len(end)]) + end
         if re.search(r"[^\d+]",start) or start == "": 
             if re.search(r"[^\d+]",end):
-                if chapter != '': 
+                if chapter == '': 
                     outliers.append(f'{book} {passage}') 
             else: 
                 phrases.append(f"{book} {chapter}{end}")
@@ -241,16 +234,14 @@ def continuous(book, w):
                     phrases.append(f'{book} {chapter}{start+idx}')        
     return phrases, outliers
 
-
 '''
 These are cases in which hyphens divide discrete citations, 
 '''
 def hyphen(book,passage): 
-
     citations, outliers = [], []
     passage = passage.strip().strip('-')
-    
-    if re.search(r"[^\d+]",passage):
+    passage = re.sub(r"\.\s",'.',passage)
+    if re.search(r"[^\d+\.\-]",passage):
         outliers.append(f"{book} {passage}")
 
     if len(re.findall(r'[\d\•|\◊]+',passage)) == 3:
@@ -267,5 +258,3 @@ def hyphen(book,passage):
         
     return citations, outliers
     
-
-

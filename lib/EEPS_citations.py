@@ -78,7 +78,7 @@ def PROCESS_CITATIONS(ERA,prefix):
 
 
 if __name__ == "__main__":
-    # print(extract_citations("Num. 13.30. & 14.9."))
+    # print(extract_citations("Acts 27.20. & 44."))
    
     with open('../assets/corpora.json','r') as file: 
         corpora = json.load(file)

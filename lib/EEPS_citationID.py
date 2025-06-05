@@ -107,7 +107,7 @@ def identify_citation_candidates(text):
                     next2_isNum = isNumeral(text[next_idx])
                     # both succeeding words are not numbers 
                     if (not next_isNum) and (not next2_isNum):
-                        if text[next_idx] != "of" and not re.search("^Sol",text[next_idx]): # Song of Solomon 
+                        if text[next_idx] != "of" and not re.search("^Sol",text[next_idx+1]): # Song of Solomon 
                             idx += 1 
                             continue
                 elif not next_isNum: 
@@ -124,7 +124,7 @@ def identify_citation_candidates(text):
             orig = text[idx]
             
             # deal with numbered books 
-            if re.search(r'samuel|kings|chronicles|corinthians|thessalonians|timothy|peter|esdras|maccabees|john',word): 
+            if re.search(r'samuel|kings|chronicles|paralipomenon|corinthians|thessalonians|timothy|peter|esdras|maccabees|john',word): 
                 if idx > 0: 
                     # the case of "1, Kings" --> remove trailing punctuation
                     prev = re.sub(r"([^\w\d\•|\◊])$","",text[idx-1]) 
@@ -221,7 +221,13 @@ def decompose(phrase):
         has_chapter = ""
         for passage in passages:
             passage = passage.strip(",.")
-            if all_single: 
+            if re.fullmatch(r'[\d.]+', passage):
+                parts = extract_chapter_verse_pairs(passage)
+                for part in parts: 
+                    c,o = simple(book,part)
+                    citations.extend(c)
+                    outliers.extend(o)
+            elif all_single: 
                 if re.match(r"\•|\◊",passage):
                     outliers.append(f"{book} {passage}")
                 else: 
@@ -242,7 +248,6 @@ def decompose(phrase):
                             c[i] = f"{book} {has_chapter}{w.split(' ')[1]}"
                 citations.extend(c)
                 outliers.extend(o)            
-            # call simple() to account for "<chapter> <line1>"
             elif re.search(r'^\d+[.: ]\d+$',passage): 
                 c,o = simple(book,passage)
                 citations.extend(c)

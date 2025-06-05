@@ -54,6 +54,7 @@ def convert_numeral(word):
         return num
     else: 
         return orig_word 
+    
 # print(convert_numeral('c.'))
 # print(convert_numeral('xlx'))
 # print(convert_numeral("cxlvii"))
@@ -65,14 +66,17 @@ def convert_numeral(word):
 def isNumeral(item):
     if item == "I": 
         return False 
-    if re.match(r"^[\d\•]+[\.\,\-\&]*",item): 
+    if re.match(r"^[\d]+[\.\,\-\&]*",item): 
         return True 
+    elif re.match("^\•$|^\◊$",item):
+        return True  
     else: 
         num = convert_numeral(item)
         if isinstance(num,int): 
             return True
     return False
 
+# print(isNumeral("•olinesse"))
 
 def get_page_number(token): 
     if is_page_image(token): 
