@@ -6,10 +6,10 @@ from EEPS_citationHelper import *
 from EEPS_helper import * 
 numBook_to_proper = {v:k for k,v in numBook.items()}
 
-def extract_citations(n):
+def extract_citations(text):
     citations, outliers = {}, {}
-
-    spans,replaced = identify_citation_candidates(n)
+    text = clean_text(text)
+    spans,replaced = identify_citation_candidates(text)
     # if len(spans) > 0: 
     #     if re.search("Tit. 2\.",replaced[0]): 
     #         print()
@@ -50,14 +50,12 @@ def extract_citations(n):
 
     return citations, outliers, replaced  
 
-
 # The longest book in the Bible is Psalms with 150 chapters, 
 # and the longest chapter (Psalms 119) has 176 verses
 
 '''Standardize abbreviations'''
 num_to_text = {'1':'one','2':'two','3':'three','4':'four'}
 def identify_citation_candidates(text): 
-    text = clean_text(text)
     text = text.split(" ")
 
     spans = []

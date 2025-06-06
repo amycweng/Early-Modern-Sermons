@@ -129,38 +129,38 @@ if __name__ == "__main__":
     with open(f"../assets/corpora.json") as file:
         era_tcpIDs = json.load(file)
     
+    citation_folder = "/Users/amycweng/SERMONS_APP/db/data"
     for era_name in era_tcpIDs: 
         all_citations = {}
-        for fp in os.listdir(f"{folder}/CITATIONS"): 
+        for fp in os.listdir(f"{citation_folder}/CITATIONS"): 
             if era_name != fp.split("_")[0]: continue
             # read citations from file 
-            citation_info = pd.read_csv(f"{folder}/CITATIONS/{fp}",
+            citation_info = pd.read_csv(f"{citation_folder}/CITATIONS/{fp}",
                         names=['tcpID',"sidx","loc","cidx","citation","outlier","replaced"]
                         )
             citations = read_citations(citation_info)
             all_citations.update(citations)
             
         b, c,v = get_citations(all_citations)
-        # c_count = count_citations(c,v)
-        # with open(f'../assets/citations/{era_name}_citations.json','w+') as file: 
-        #     json.dump((b,c,v),file)
+        c_count = count_citations(c,v)
+        with open(f'../assets/citation_indices/{era_name}_citations.json','w+') as file: 
+            json.dump((b,c,v),file)
 
 
 # pre-Elizabeth
-# 961 labels and 4757 citations
+# 947 labels and 4534 citations
 # Elizabeth
-# 9016 labels and 40846 citations
+# 15220 labels and 63478 citations
 # JamesI
-# 18736 labels and 82745 citations
+# 26834 labels and 181179 citations
 # CharlesI
-# 19380 labels and 78652 citations
+# 28337 labels and 173831 citations
 # CivilWar
-# 16380 labels and 51334 citations
+# 24458 labels and 112657 citations
 # Interregnum
-# 18936 labels and 76999 citations
+# 27489 labels and 179025 citations
 # CharlesII
-# 25053 labels and 142386 citations
+# 33083 labels and 326258 citations
 # JamesII
-# 8870 labels and 18088 citations
+# 12225 labels and 29693 citations
 # WilliamAndMary
-# 15147 labels and 50984 citations

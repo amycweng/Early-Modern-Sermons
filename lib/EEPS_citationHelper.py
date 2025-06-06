@@ -8,7 +8,7 @@ Clean text
 '''
 def clean_text(n): 
     # remove everything that is not an alphabetical character, integer, comma, ampersand, hyphen, gap letter, gap word, period, apostrophe or a single space
-    n = re.sub(r'[^\w\d\,\&\-\—\•\◊\(\)\.\'\"\: ]','',str(n))
+    n = re.sub(r'[^\w\d\,\&\-\—\•\◊\.\: ]','',str(n))
     
     # normalize conjunctions 
     n = re.sub(r"\band\b|\bet\b|\b\&\b|\b& &\b",' & ', n)

@@ -8,8 +8,8 @@ warnings.filterwarnings("ignore", category=pd.errors.DtypeWarning)
 
 from EEPS_helper import folder
 
-FOLDER = f'{folder}/SERMONS_APP/db/data'
-OUTPUT_FOLDER = f'{folder}/CITATIONS'
+FOLDER = f'/Users/amycweng/SERMONS_APP/db/data'
+OUTPUT_FOLDER = f'{FOLDER}/CITATIONS'
 # OUTPUT_FOLDER = f'/Users/amycweng/Desktop/CITATIONS'
 
 

@@ -8,17 +8,292 @@ sermons_missing = pd.read_csv("../assets/sermons_missing.csv")
 sermons_missing = sermons_missing.to_dict(orient='records')
 sermons_missing = {s['id']:None for s in sermons_missing}
 
-wanted_sections = [
-    'text','treatise','part','tract','lecture','lectures','chapter','book',
-    'discourse','commentary','doctrine','application','conclusion',
-    'exposition','body_of_text','homily','memorial','funeral_sermon',
-    'extracts_from_sermon','oration_and_sermon','collection_of_lectures',
-    'collection_of_sermons_on_isaiah','collection_of_sermons_on_haggai',
-    'whit_sunday_sermons','ordination_sermons','penitential_sermons_preached_at_wells',
-    'sermon_extract','application_of_sermon','summary_of_sermons',
-    'two_sermons','greek_text_bound_with_sermon','collection_of_sermons','visitation_sermon',
+# foreign texts
+exclude_foreign = {'A95346': 'wel', 'B34542': 'fre', 'B10302': 'wel', 'B02801': 'fre', 
+                   'B07519': 'wel', 'A87349': 'wel', 'A81783': 'fre', 'A81315': 'wel', 
+                   'A91720': 'sco', 'A95629': 'fre', 'A91479': 'fre', 'A91847': 'fre', 
+                   'A62564': 'fre', 'A52002': 'fre', 'A29335': 'fre', 'A29334': 'fre', 
+                   'A31429': 'new', 'A64645': 'wel', 'A76482': 'wel', 'A72359': 'wel', 
+                   'A00687': 'sco', 'A17050': 'sco', 'A95720': 'wel', 'B04329': 'wel', 
+                   'B09870': 'fre', 'A60308': 'fre', 'A50422': 'wel', 'A59547': 'fre', 
+                   'A29332': 'fre', 'A00164': 'lat', 'A00156': 'lat', 'A45574': 'lat', 
+                   'A65588': 'lat', 'A07584': 'lat', 'A02379': 'lat', 'A06325': 'lat', 
+                   'A19485': 'lat', 'A80884': 'lat', 'A09748': 'lat', 'A67819': 'lat', 
+                   'A44316': 'lat', 'A19744': 'lat'}
+
+exclude_annotated = [
+    'A96361', # commentary on the Sermon on the Mount 
+    'A16204', # only a title page & colophon of a 16th cent. sermon
+    'A53661', # remarks on a sermon 
+    'A42786', # remarks on remarks on a sermon
+    'A43674', # discourses upon a funeral sermon
+    'A17423', # musical compositions (even tho title mentions a sermon)
+    'B03994', # letter w/ an account of some preacher w/ hymns that they sing
+    'A76964', # catechism; does not contain the sermon promised in the title
+    'A68730', # does not actually contain the sermon promised in the title 
+    'B03688', # narrative account
+    'A31468', # censure
+    'A15864', # guide to hearing sermons first written in Latin
+    'A34897', # reply to sermon
+    'B17774', # Psalms 
+    'A13551', # chapter 
+    'A52900', # response to sermon
+    'A52284', # letters & hymns sung at a funeral sermon
+    'A50287', # petition, embassage
+    'A96439', # Quaker letters & remarks 
+    'A39120', # reply to sermon
+    'A53461', # broadside mock sermon
+    'A22477', # royal proclamation
+    'A33382', # book catalogue 
+    'A62876', # dissenting polemic
+    'A86098', # speech against a sermon
+    'A83515', # Tho. Edwards' Gangraena 
+    'A53708', # meditations & discourses 
+    'A34396', # mock sermon
+    'A40761', # Quaker testimony 
+    'A03927', # reasons & answers about the book of common prayer 
+    'A10581', # dialogue
+    'A49230', # reply to a treatise 
+    'A35266', # catalogue of writers 
+    'A32938', # articles of enquiry in Diocese of Carlisle; visitation sermon
+    'A86442', # Quaker reply to sermon
+    'A01012', # response to an accident that occurred at a Catholic sermon 
+    'A35017', # criticism of Scotch sermons
+    'A83979', # monsters & accounts of portentous events; brief relation of her funeral sermon
+    'A82859', # parliamentary_declaration
+    'A14186', # Psalms
+    'A07105', # treatise about the schism
+    'A26870', # actual funeral sermon is missing from the microfilm 
+    'A09426', # William Perkins' The foundation of Christian religion; 'religious_tract', not labeled as a sermon & no place of preaching 
+    'A20733', # Downame's defense of his sermon
+    'A10341', # reply to Downame's defense 
+    'A68172', # critique of a 'wicked sermon',
+    'A44239', # discourse referring back to an earlier printed sermon
+    'A52641', # primarily narrative of death & burial; funeral sermon hard to extract and identify 
+    'A74862', # letter exposing how a writer contradicted with his past sermons 
+    'A97284', # primarily a narrative & history about the Dutch fleet for the Commonwealth 
+    'A84987', # mineral waters in Germany 
+    'A61076', # response to 'a late scurrilous libel, prefix'd to a sermon preach'd nine and thirty years ago'
+    'A25580', # "An ansvver to" sermons
+    'A67000', # "Against the doctrine of" a preacher in his sermons 
+    'A41398', # Letter "modestly accepting the challenge by him made in his sermon of repentance preached"
+    'A37425', # narrative account w/ "divers familiar letters, both Latin and English sermons, poems, essays"; pilgrimage
+    'B29264', # dissertation upon water-baptism 
+    'A60334', # response to a sermon  
+    'A36211', # response to a sermon  
+    'A53674', # response to a sermon  
+    'A16999', # response to a sermon 
+    'A71053', # response to a sermon 
+    'A27407', # response to a sermon 
+    'A32910', # response to a sermon; "The female advocate...Being reflections on a late rude and disingenuous discourse, delivered by Mr. John Sprint, in a sermon at a wedding"
+    'A80756', # the promised "annexed sermon" is not found in the text; conversation between a minister and a converted recusant  
+    'A68566', # response to a sermon; "A briefe discouery of the vntruthes and slanders...contained in a sermon"
+    'A26579', # response to a sermon 
+    'A76800', # contains a response to a sermon 
+    'A79931', # response to a sermon; biblical commentary responding to certain writers 
+    'A68078', # includes a response to a sermon
+    'A04207', # responses to divines 
+    'A56659', # response to a sermon
+    'A53040', # response to a slanderous sermon 
+    'A42574', # answer to a text 
+    'A01006', # response to W. Crashawe's sermon 
+    'A19895', # response to a sermon 
+    'A60334', # defense of Catholicism against several books 
+    'A36211', # remarks on a sermon
+    'A53674', # defense of non-conformists against a sermon 
+    'A76800', # huge volume containing a reply to a sermon 
+    'A79931', # defense of some preacher's proof-text 
+    'A26579', # includes a reply to a sermon 
+    'A68566', # response to a sermon
+    'A80756', # response to a sermon 
+    'A32910', # a lady of quality's response to rude remarks in a sermon
+    'A27407', # reply to a sermon 
+    'A71053', # response to a sermon 
+    'A78088', # response to a sermon 
+    'A88806', # preacher's protests againsts responses to his sermons 
+    'A16999', # response to a sermon
+    'A04214', # response to another preacher's writings 
+    'A27593', # responses to two preachers' sermons 
+    'A91807', # response to a sermon 
+    'A38139', # remarks on a response to a sermon 
+    'A54794', # commentary on preaching  
+    'A36116', # response to a sermon 
+    'A54793', # response to several sermons 
+    'A77374', # response to a preacher's book; does not contain the three sermons which the title mentions 
+    'A69662', # remarks on Laud's final sermon
+    'A81905', # commentary on "ministers medling with state matters in or out of their sermons"
+    'A66436', # vindication of two preachers' sermons 
+    'A61415', # contains a letter that comments on sermons 
+    'A45400', # letters & excerpts from letters; does not contain the two added sermons 
+    'A41330', # contains observations upon a sermon 
+    'A44665', # response to a letter that remarked upon a sermon 
+    'A64572', # household manual of piety (contains a section on the "repeating of sermons")
+    'A28590', # response to a sermon 
+    'A51087', # respnose to a sermon 
+    'A25563', # response to a sermon by the "gentleman who took the said sermon in short-hand"
+    'A51787', # contains reflections upon a sermon
+    'A10320', # response to a sermon 
+    'A09101', # contains a reproof of a sermon 
+    'A49336', # contains a letter & reflections upon letters regarding sermons 
+    'A47737', # reflections upon a preacher's sermons 
+    'A49256', # Christopher Love's replies to William Dell's sermons 
+    'A94741', # contains remarks on a sermon 
+    'A36257', # a vindication of a sermon regarding organ music in churches 
+    'A58375', # reflections on a sermon by a "gentleman who took the said sermon in short-hand"
+    'A00514', # contains a commentary on St. Bernard's sermon 
+    'A34868', # history of Biblical events 
+    'A49667', # a testament "taken in short-hand by a zealous scribe who used to take sermon notes"
+    'A27592', # discourse upon a preacher's sermon 
+    'A30987', # a treatise of fornication; does not contain the added "penitentiary sermon upon John viii. II" 
+    'A06202', # "Sundry Christian passions contained in two hundred sonnets."
+    'A47758', # "Remarks on some late sermons, and in particular on Dr. Sherlock's sermon"
+    'A44658', # contains remarks on a sermon; mostly a vindication 
+    'A92420', # contains remarks on a sermon 
+    'A31766', # remarks on a sermon 
+    'A60515', # "In opposition to a counterfeit sermon pretended to be preached before the people called Quakers"
+    'A76517', # remarks on two sermons 
+    'A33070', # remarks on a sermon 
+    'A57569', # remarks upon a sermon 
+    'A41625', # reply to an answer 
+    'A65714', # "A reply to what S.C. (or Serenus Cressy) a Roman Catholick hath returned to Dr. Pierces sermon"
+    'A21332', # translation of a French text by Portugal's prince 
+    'A31518', # queries upon a sermon 
+    'A30410', # reflections on a pamphlet that responds to a sermon 
+    'A84572', # a request to a preacher in response to his sermon  
+    'A97256', # a text on the preaching and hearing of sermons 
+    'A77003', # response to a sermon falsely published on the author's name 
+    'A93805', # commentary on Laud's last sermon 
+    'A55506', # "The Pourtraicture of K. Charles I illuminated with several of his memorable actions, very proper to be read on the 30th of January, before sermon"
+    'A59248', # animadversions on a sermon
+    'A69663', # commentary on Laud's last sermon 
+    'A64152', # commentary on separatists who made a scene at a sermon 
+    'A59589', # response to another minister's writings 
+    'A62867', # remarks on a sermon 
+    'A47892', # "No blinde guides, in answer to a seditious pamphlet of J. Milton's"
+    'A85385', # "Delivered by way of prologue before a sermon the last publique fast-day"
+    'A93736', # treatise on the judgment of God that differs from "any other books or sermons upon this subject."
+    'A64355', # "A defence of Dr. Tenison's sermon of discretion in giving alms"
+    'A56654', # "A discourse of profiting by sermons"
+    'A10173', # "Protestants demonstrations, for Catholiks recusance All taken from such English Protestant bishops, doctors, ministers, parlaments, lawes, decrees, and proceedings"
+    'A44682', # "A letter written out of the countrey to a person of quality in the city who took offence at the late sermon of Dr. Stillingfleet"
+    'A43648', # remarks on a farewell sermon 
+    'A15195', # the whole book of Psalms 
+    'B09664', # broadside for the University of Oxford advertising a sermon for coronation 
+    'A64159', # remarks on separatists gathering to hear a sermon 
+    'A32109', # "His Maiesties speciall command under the great seale of England to the Lord Major of the honourable city of London"
+    'A38590', # "Catechistical discovrses"
+    'A89171', # "Occasioned by a seditious sermon lately preached."
+    'A28185', # "Some animadversions upon his sermon"
+    'A11933', # commentaries on Ecclesiastes 
+    'A53902', # Maxims, aphorisms and apothegms for prayers before or after his sermons 
+    'A65863', # contains remarks on a sermon preached by Edward Stillingfleet before the king 
+    'A34032', # "some considerations upon the sermons of a divine" 
+    'A90551', # remarks "upon the publishing a pretended sermon"
+    'A47223', # a letter in response to a sermon  
+    'A08483', # an exposition adapted from "the catechising sermons of Gasper Oleuvian Treuir, and now translated out of the Latine tongue into the English"
+    'A69915', # contains a letter that responds to a sermon 
+    'A81846', # propositions addressed to Oliver Cromwell 
+    'A10686', # an elegy on the death of a hundred persons "who were lamentably slaine by the fall of a house in the Blacke-Fryers being all assembled there (after the manner of their deuotions) to heare a sermon on Sunday night"
+    'A35016', # responses to sermons 
+    'A68106', # "A declaration of Henry Marc de Gouffier Marquise of Boniuet, Lord of Creuecœur, &c. Made in the consistorie of Rochell, in the presence of the pastors and elders of the said towne"
+    'B22921', # "with an appendix in vindication of a sermon"
+    'A10724', # "The true report of a late practise enterprised by a papist with a yong maiden in Wales"
+    'B04689', # catechism 
+    'A81375', # Message from the Isle of Wight, brought by Major Cromwell.
+    'A52918', # treatise on dissenters; "Vox clamantis, or, A cry to Protestant dissenters calling them from some unwarrantable ways, with which they are vulgarly, and perhaps too truly charged"
+    'A18948', # "The recantation of Thomas Clarke (sometime a Seminarie Priest of the English Colledge in Rhemes; and nowe by the great mercy of God conuerted vnto the profession of the gospell of Iesus Christ) made at Paules Crosse, after the sermon made by Master Buckeridge preacher"
+    'A90877', # "The Portraiture of Mr. George Keith the Quaker, in opposition to Mr. George Keith the parson."
+    'A87716', # letter 
+    'A10442', # "A confutation of a sermon"
+    'A10443', # "Confutation of a sermon, pronounced by M. Juell, at Paules crosse"
+    'A44801', # an answer to a sermon
+    'A90899', # three dialogues; does not contain the two added sermons mentioned in the title 
+    'A27029', # breviate about controversies regarding justification, antinomianism, the reprinting of a preacher's sermons 
+    'A34230', # does not contain the "brief notes of two sermons", only a narrative 
+    'A93510', # "Some plain directions for the more profitable hearing of the vvord preached"
+    'A52614', # only contains a life; does not contain the "sermon on Luke X. 36, 37 preach'd on the occasion of his death"
+    'A85774', # an exposition; does not contain the "two sermons preached before the University at Oxford, some years since"
+    'A56520', # narrative about infanticide; does not contain the appendixed sermon 
+    'A76180', # list of advice to Parliament from Richard Baxter at the end of his sermon 
+    'A17683', # translation out of Latin of Calvin's lectures  
+    'A27494', # does not contain the added "sermon of regal power" 
+    'A86886', # "The foure wishes of Mr. John Humphrey, in conclusion of his sermons printed 1653."
+    'A67822', # several poems, including a poetical translation of a Latin sermon by Edward Young
+    'A81581', # "Queries upon queries: or Enquiries into Certain queries upon Dr. Pierce's sermon at Whitehall, Feb. 1"
+    'A71091', # Refutation of a sermon preached by Stephen Marshall before the House of Commons (Meroz Cursed)
+    'A28579', # contains a list of "Choyce Occasional Sermons"
+    'A50799', # contains a list of recommended sermons 
+    'A13812', # answer to remarks on a sermon 
+    'A21069', # treatise proving "it to be absolutely sinfull to heare the word preached in any false state"
+    'A43399', # "A reply in the defence of Oxford Petition"
+    'A44308', # reply to a sermon 
+    'A44843', # "The record of sufferings for tythes in England"
+    'A46371', # reflections of a learned man on the "strange and miraculous exstasies" of a woman 
+    'A48172',  # a letter reply to a sermon 
+    'A58328', # response to a sermon 
+    'B01388', # "An answer to Clemens Alexandrinus's sermon"
+    'A89416', # "A true relation of the proceedings from York and Beverley."
+    'B03839', # "The Jacobite's new creed, containing the articles of their faith, and doctrine of salvation, as now preach'd and practised, &c. Licensed according to order."
+    'B06138', # "To the Reverend Dr. Beveridge, an eucharisticon, occasion'd by his seasonable and excellent sermon"
+    'B09463', # "In a letter, which impartially discovers the manifold haeresies and blasphemies, and the strong delusions of even the most refined Quakerism"
+    'A81906', # "A case of conscience resolved: concerning ministers medling with state matters in their sermons"
+    'A88596', # "The true and perfect speec [sic] of Mr. Christopher Love on the scaffold on Tower-Hill"
+    'A81417', # "A dialogue; between George Keith, and an eminent Quaker relating to his coming over to the Church of England. With some modest reflections on Mr. Keith's two first sermons" 
+    'A85341', # "The good Catholick no bad subject. Or, A letter from a Catholick gentleman to Mr. Richard Baxter. Modestly accepting the challenge by him made in his Sermon of repentance"
+    'A96864', # "Divine poems being meditations upon several sermons"
+    'A93332', # "A reply to a pamphlet called, Oaths no gospel-ordinance"
+    'A95939', # "...Occasioned, by their attesting his delivering of certain positions, in a sermon at the leaguer"
+    'A79568', # "The church defended, against Mr. Skingle's assize-sermon at Hertford In a letter to a friend. By a true lover of the orthodox clergie."
+    'A77100', # "Paideia Thriamous. The triumph of learning over ignorance, and of truth over faleshood. Being an answer to foure quæries. Whether there be any need of universities? Who is to be accounted an hæretick? Whether it be lawfull to use coventicles? Whether a lay-man may preach? VVhich were lately proposed by a zelot, in the parish church at Swacie neere Cambridge, after the second sermon..."
+    'A63877', # "A letter to the clergy of the diœcess of Ely from the Bishop of Ely ; before, and preparatory to his visitation."
+    'A62992', # reply to a sermon 
+    'A60864', # remarks on an answer to a sermon
+    'A64639', # a letter with remarks on a sermon 
+    'A64197', # "a soft answer to an angry sermon" 
+    'A61683', # a letter with refllections on a book 
+    'A48191', # a letter occasioned by a sermon 
+    'A43685', # a vindication occasioned by a sermon 
+    'A43806', # a letter and an answer 
+    'A46883', # letters on Turkey, Jews, and Ethnic relations 
+    'A40538', # an account of the Popish Plot, 1678 
+    'A41496', # a letter occasioned by a sermon
+    'A45149', # remarks occasioned  by a sermon
+    'A48968', # answer to a late farewell sermon 
+    'A55289', # poems occasioned by other poems and sermons upon the queen's death 
+    'A54939', # a letter occasioned by a sermon 
+    'A57258', # a letter concerning passages of a sermon 
+    'A56278', # prayers used by preachers before or after sermons 
+    'A58892', # a letter remarking to a sermon
+    'A16497', # catechism regarding piety, including how "to heare sermons with profit"
+    'A18267', # a dictionary of words borrowed from other languages 
+    'A06013', # defence of a sermon 
+    'A31039', # defence against a sermon 
+    'A64394', # Terence's Latin dramas 
+    'A77638', # a letter occasioned by a sermon
+    'A78013', # a letter occasioned by Christopher Love's sermon 
+    'A42577', # a letter examining a sermon 
+    'A47973', # "A letter from a clergy-man in the country, to a minister in the city, concerning ministers intermedling with state-affairs in their sermons & discourse"
+    'A42539', # "Upon the meeting of the sons of the clergy at a sermon preached before them in Saint Pauls church"
+    'A09418', # how to "hear sermons with profit" 
+    'A13299', # contains the preface and postscript before and after a sermon 
+    'A30903', # apology for Quakerism 
+    'A36190', # "Queries upon queries" regarding a sermon 
+    'A31459', # the life of a minister 
+    'A26859', # an answer to a sermon 
+    'B28836', # a letter claiming inspiration from the Holy Spirit; labeled as "Astrology -- Sermons." and "Sermons, English" in subject headings,
+    'A83012', # "The confident questionist questioned: or, the examination of the doctrine delivered by Mr. Thomas Willes in certain queries."
+    'A84063', # Pastoral letters and charges; does not actually contain a sermon despite having the subject of "Sermons, English"
+    'A90702', # does not actually contain the sermon text
+    'A67411', # only contains two letters; "Theological discourses, in two parts the first containing VIII letters and III sermons concerning the blessed Trinity : the second, discourses & sermons on several occasions / by John Wallis ...",
+    'A68546', # contains only the second half of the title, i.e., prayers of thanksgiving; "God be thanked A sermon of thanksgiuing for the happy successe of the English fleetes, sent forth by the honourable company of aduenturers to the East Indies. Preached to the honourable gouernors and committees, and the whole company, of their good ship, the Hope Marchant happily returened: at Deptford on Maundy Thursday last being the 29th of March. 1616. Hereunto are added sundry necessary and vseful formes of prayer and thankes-giuing for the helpe of all such as trauell by sea, fitted to their seruerall occasions. By Samuel Page Dr. in Diuinitie."
+    'A65419', # letters occasioned by a sermon 
+    'A11848', # only contains the title page; "Fury fiered, or, Crueltie scourged preached at S. Buttolphs without Bishops-gate, Nouem. 18. 1623 / by Iohn Sedguuick ..."
+    'A18019', # only contains the title page; "Achitophel, or, The picture of a wicked politician devided into three parts : a treatise presented heretofore in three sermons to the Vniversitie of Oxford and now published / by Nathanael Carpent[er]."
+    'A26426', # "Advertisement be [sic] Agnes Campbel relict of the deceast Master William Guthrie, minister of the Gospel, unto whose hands some printed papers called sermons, bearing the said Master William his name, may come."
+    'B26622', # only contains a decree from a council 
+    'A02216', # poem; "An Oration or funerall sermon vttered at Roome...faithfully translated out of the French copie"
 ]
-wanted_sections = {s:None for s in wanted_sections}
+
 custom = {
         'A81042': 'letter',
         'A64811': 'class',
@@ -270,7 +545,6 @@ custom_exceptions = {
         'A03634':{'prefatory_letter':[1]} # <DIV1 TYPE="prefatory letter">; [An homelye to be read in the tyme of pestylence]
 }
 
-
 custom_pages = {
         'A80317':'PAGE5', # <PB N="5" REF="3" MS="y"/> ;  Contains the substance of the sermon preached to them
         'A69511':'PAGE13', # <P><PB N="13" REF="8"/> ; the SECOND part -- exclude the contents within the <LETTER></LETTER> and <LIST></LIST>. Begin with the following: <P><PB N="13" REF="8"/>
@@ -303,3 +577,16 @@ sermon_subsections = ['A00593', 'A01628', 'A02178', 'A02609', 'A02883', 'A03272'
                       'A16333', 'A43632', 'A47044', 'A84421', 'A88281']
 sermon_subsections = {s:None for s in sermon_subsections}
 
+
+
+wanted_sections = [
+    'text','treatise','part','tract','lecture','lectures','chapter','book',
+    'discourse','commentary','doctrine','application','conclusion',
+    'exposition','body_of_text','homily','memorial','funeral_sermon',
+    'extracts_from_sermon','oration_and_sermon','collection_of_lectures',
+    'collection_of_sermons_on_isaiah','collection_of_sermons_on_haggai',
+    'whit_sunday_sermons','ordination_sermons','penitential_sermons_preached_at_wells',
+    'sermon_extract','application_of_sermon','summary_of_sermons',
+    'two_sermons','greek_text_bound_with_sermon','collection_of_sermons','visitation_sermon',
+]
+wanted_sections = {s:None for s in wanted_sections}
